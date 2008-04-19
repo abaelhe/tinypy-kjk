@@ -2,12 +2,24 @@ import os
 import sys
 import struct
 
+# How to compile on windows with Visual Studio:
+# Call the batch script that sets environement variables for Visual Studio and
+# then run this script.
+# For VS 2005 the script is:
+# "C:\Program Files\Microsoft Visual Studio 8\Common7\Tools\vsvars32.bat"
+# For VS 2008: "C:\Program Files\Microsoft Visual Studio 9.0\Common7\Tools\vsvars32.bat"
+# Doesn't compile with vc6 (no variadic macros)
+
 ARGV = sys.argv
+
+def is_win():
+    return "win32" == sys.platform
 
 RM = 'rm -f '
 VM = './vm '
 TINYPY = './tinypy '
-if '-mingw32' in ARGV:
+
+if '-mingw32' in ARGV or is_win():
     RM = 'del '
     VM = 'vm '
     TINYPY = 'tinypy '
@@ -29,6 +41,7 @@ def boot_init():
     f = open('tp.h','r').read()
     FTYPE = 'f'
     if 'double tp_num' in f: FTYPE = 'd'
+
 boot_init()
 
 def fpack(v):
@@ -59,6 +72,8 @@ def do_cmd(cmd):
         SDL = '-Ic:/packages/sdl-devel/include -Lc:/packages/sdl-devel/lib '+\
             '-lSDLmain -lSDL'
         SYS = '-mingw32'
+    if is_win():
+        SYS = '-win'
     cmd = cmd.replace('$FLAGS',FLAGS)
     cmd = cmd.replace('$SYS',SYS)
     cmd = cmd.replace('$SDL',SDL)
@@ -98,7 +113,7 @@ def build_bc(opt=False):
     f = open('bc.c','wb')
     f.write('\n'.join(out))
     f.close()
-    
+
 def build_tp():
     out = []
     out.append("/*")
@@ -146,24 +161,41 @@ def build_tp():
     f = open('tinypy.c','w')
     f.write('\n'.join(out))
     f.close()
-    
-    
 
 def bootstrap():
     mods = MODS[:]; mods.append('tests')
-    do_cmd("gcc -Wall -g vmmain.c $FLAGS -lm -o vm")
+    if is_win():
+        do_cmd('cl vmmain.c $FLAGS /D "inline=" /Od /Zi /Fdvm.pdb /Fmvm.map /Fevm.exe')
+    else:
+        do_cmd("gcc -Wall -g vmmain.c $FLAGS -lm -o vm")
     do_cmd('python tests.py $SYS')
     for mod in mods: do_cmd('python py2bc.py %s.py %s.tpc'%(mod,mod))
     do_cmd(VM+'tests.tpc $SYS')
     for mod in mods: do_cmd(VM+'py2bc.tpc %s.py %s.tpc'%(mod,mod))
     build_bc()
-    do_cmd("gcc -Wall -g tpmain.c $FLAGS -lm -o tinypy")
+    if is_win():
+        do_cmd('cl /Od tpmain.c /D "inline=" $FLAGS /Zi /Fdtinypy.pdb /Fmtinypy.map /Fetinypy.exe')
+    else:
+        do_cmd("gcc -Wall -g tpmain.c $FLAGS -lm -o tinypy")
     #second pass - builts optimized binaries and stuff
     do_cmd(TINYPY+'tests.py $SYS')
     for mod in mods: do_cmd(TINYPY+'py2bc.py %s.py %s.tpc -nopos'%(mod,mod))
     build_bc(True)
-    do_cmd("gcc -Wall -O2 tpmain.c $FLAGS -lm -o tinypy")
+
+    if is_win():
+        return
+
+    if is_win():
+        do_cmd('cl /O2 tpmain.c /D "inline=__inline" /D "NDEBUG" $FLAGS /Gy /GL /Zi /Fdtinypy.pdb /Fmtinypy.map /Fetinypy.exe /link /opt:ref /opt:icf')
+    else:
+        do_cmd("gcc -Wall -O2 tpmain.c $FLAGS -lm -o tinypy")
+
     do_cmd(TINYPY+'tests.py $SYS')
+    if is_win():
+        # nothing more for win
+        print("# OK")
+        return
+
     print("# OK - we'll try -O3 for extra speed ...")
     do_cmd("gcc -Wall -O3 tpmain.c $FLAGS -lm -o tinypy")
     do_cmd(TINYPY+'tests.py $SYS')
