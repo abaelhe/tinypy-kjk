@@ -64,7 +64,7 @@ tp_obj tp_range(TP) {
     int c = TP_DEFAULT(tp_number(1)).number.val;
     tp_obj r = tp_list(tp);
     int i;
-    for (i=a; i!=b; i+=c) { _tp_list_append(tp,r.list.val,tp_number(i)); }
+    for (i=a; i<b; i+=c) { _tp_list_append(tp,r.list.val,tp_number(i)); }
     return r;
 }
 
