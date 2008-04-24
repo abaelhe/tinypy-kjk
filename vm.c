@@ -304,7 +304,12 @@ tp_obj tp_import_(TP) {
     return r;
 }
 
-#define TP_IB(a,b) tp_set(tp,ctx,tp_string(a),tp_fnc(tp,b))
+void tp_ib_help(tp_vm *tp, tp_obj ctx, char *s, void* func)
+{
+    tp_set(tp, ctx, tp_string(s), tp_fnc(tp, func));
+}
+
+#define TP_IB(a,b) tp_ib_help(tp,ctx,a,b)
 
 tp_obj tp_builtins(TP) {
     tp_obj ctx = tp->builtins;
