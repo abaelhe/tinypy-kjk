@@ -29,31 +29,26 @@ typedef struct tp_number_ {
     int type;
     tp_num val;
 } tp_number_;
-
 typedef struct tp_string_ {
     int type;
     struct _tp_string *info;
     char *val;
     int len;
 } tp_string_;
-
 typedef struct tp_list_ {
     int type;
     struct _tp_list *val;
 } tp_list_;
-
 typedef struct tp_dict_ {
     int type;
     struct _tp_dict *val;
 } tp_dict_;
-
 typedef struct tp_fnc_ {
     int type;
     struct _tp_fnc *val;
     int ftype;
     void *fval;
 } tp_fnc_;
-
 typedef struct tp_data_ {
     int type;
     struct _tp_data *info;
@@ -76,21 +71,18 @@ typedef struct _tp_string {
     int gci;
     char s[1];
 } _tp_string;
-
 typedef struct _tp_list {
     int gci;
     tp_obj *items;
     int len;
     int alloc;
 } _tp_list;
-
 typedef struct tp_item {
     int used;
     int hash;
     tp_obj key;
     tp_obj val;
 } tp_item;
-
 typedef struct _tp_dict {
     int gci;
     tp_item *items;
@@ -100,12 +92,12 @@ typedef struct _tp_dict {
     int mask;
     int used;
 } _tp_dict;
-
 typedef struct _tp_fnc {
     int gci;
     tp_obj self;
     tp_obj globals;
 } _tp_fnc;
+
 
 typedef union tp_code {
     unsigned char i;
@@ -155,7 +147,6 @@ typedef struct tp_vm {
 } tp_vm;
 
 #define TP tp_vm *tp
-
 typedef struct tp_meta {
     int type;
     tp_obj (*get)(TP,tp_obj,tp_obj);
@@ -165,12 +156,10 @@ typedef struct tp_meta {
 //     tp_obj (*has)(TP,tp_obj,tp_obj);
 //     tp_obj (*len)(TP,tp_obj);
 } tp_meta;
-
 typedef struct _tp_data {
     int gci;
     tp_meta meta;
 } _tp_data;
-
 
 // NOTE: these are the few out of namespace items for convenience
 #define True tp_number(1)
@@ -194,7 +183,6 @@ void tp_grey(TP,tp_obj);
     _tp_raise(tp,tp_printf(tp,fmt,__VA_ARGS__)); \
     return r; \
 }
-
 #define __params (tp->params)
 
 inline static tp_obj TP_OBJ2(tp_vm *tp) {
@@ -204,9 +192,7 @@ inline static tp_obj TP_OBJ2(tp_vm *tp) {
 #define TP_OBJ() TP_OBJ2(tp)
 
 inline static tp_obj tp_type(TP,int t,tp_obj v) {
-    if (v.type != t) { 
-        tp_raise(None,"_tp_type(%d,%s)",t,STR(v)); 
-    }
+    if (v.type != t) { tp_raise(None,"_tp_type(%d,%s)",t,STR(v)); }
     return v;
 }
 #define TP_TYPE(t) tp_type(tp,t,TP_OBJ())

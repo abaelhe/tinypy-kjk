@@ -1,3 +1,4 @@
+
 tp_vm *_tp_init(void) {
     int i;
     tp_vm *tp = tp_malloc(sizeof(tp_vm)); 
@@ -34,6 +35,7 @@ void tp_deinit(TP) {
     tp_gc_deinit(tp);
     tp_free(tp);
 }
+
 
 // tp_frame_ 
 void tp_frame(TP,tp_obj globals,tp_code *codes,tp_obj *ret_dest) {
@@ -78,6 +80,8 @@ void tp_print_stack(TP) {
     printf("\nException:\n%s\n",STR(tp->ex));
 }
 
+
+
 void tp_handle(TP) {
     int i;
     for (i=tp->cur; i>=0; i--) {
@@ -116,6 +120,7 @@ void _tp_call(TP,tp_obj *dest, tp_obj fnc, tp_obj params) {
     tp_params_v(tp,1,fnc); tp_print(tp);
     tp_raise(,"tp_call: %s is not callable",STR(fnc));
 }
+
 
 void tp_return(TP, tp_obj v) {
     tp_obj *dest = tp->frames[tp->cur].ret_dest;
@@ -246,6 +251,7 @@ void tp_run(TP,int cur) {
     tp->cur = cur-1; tp->jmp = 0;
 }
 
+
 tp_obj tp_call(TP, char *mod, char *fnc, tp_obj params) {
     tp_obj tmp;
     tp_obj r = None;
@@ -283,12 +289,15 @@ tp_obj tp_import(TP,char *fname, char *name, void *codes) {
     return g;
 }
 
+
+
 tp_obj tp_exec_(TP) {
     tp_obj code = TP_OBJ();
     tp_obj globals = TP_OBJ();
     tp_frame(tp,globals,(void*)code.string.val,0);
     return None;
 }
+
 
 tp_obj tp_import_(TP) {
     tp_obj mod = TP_OBJ();
@@ -304,46 +313,41 @@ tp_obj tp_import_(TP) {
     return r;
 }
 
-void tp_ib_help(tp_vm *tp, tp_obj ctx, char *s, void* func)
-{
-    tp_set(tp, ctx, tp_string(s), tp_fnc(tp, func));
+void tp_builtins(TP) {
+    struct {char *s;void *f;} b[] = {
+    {"print",tp_print}, {"range",tp_range}, {"min",tp_min},
+    {"max",tp_max}, {"bind",tp_bind}, {"copy",tp_copy},
+    {"import",tp_import_}, {"len",tp_len_}, {"assert",tp_assert},
+    {"str",tp_str2}, {"float",tp_float}, {"system",tp_system},
+    {"istype",tp_istype}, {"chr",tp_chr}, {"save",tp_save},
+    {"load",tp_load}, {"fpack",tp_fpack}, {"abs",tp_abs},
+    {"int",tp_int}, {"exec",tp_exec_}, {"exists",tp_exists},
+    {"mtime",tp_mtime}, {"number",tp_float}, {"round",tp_round},
+    {"ord",tp_ord}, {"merge",tp_merge}, {0,0},
+    };
+    int i; for(i=0; b[i].s; i++) {
+        tp_set(tp,tp->builtins,tp_string(b[i].s),tp_fnc(tp,b[i].f));
+    }
 }
 
-#define TP_IB(a,b) tp_ib_help(tp,ctx,a,b)
-
-tp_obj tp_builtins(TP) {
-    tp_obj ctx = tp->builtins;
-    TP_IB("print",tp_print); TP_IB("range",tp_range); TP_IB("min",tp_min);
-    TP_IB("max",tp_max); TP_IB("bind",tp_bind); TP_IB("copy",tp_copy);
-    TP_IB("import",tp_import_); TP_IB("len",tp_len_); TP_IB("assert",tp_assert);
-    TP_IB("str",tp_str2); TP_IB("float",tp_float); TP_IB("system",tp_system);
-    TP_IB("istype",tp_istype); TP_IB("chr",tp_chr); TP_IB("save",tp_save);
-    TP_IB("load",tp_load); TP_IB("fpack",tp_fpack); TP_IB("abs",tp_abs);
-    TP_IB("int",tp_int); TP_IB("exec",tp_exec_); TP_IB("exists",tp_exists);
-    TP_IB("mtime",tp_mtime); TP_IB("number",tp_float); TP_IB("round",tp_round);
-    TP_IB("ord",tp_ord); TP_IB("merge",tp_merge);
-    return ctx;
-}
 
 void tp_args(TP,int argc, char *argv[]) {
     tp_obj self = tp_list(tp);
     int i;
-    for (i=1; i<argc; i++) { 
-        _tp_list_append(tp,self.list.val,tp_string(argv[i])); 
-    }
+    for (i=1; i<argc; i++) { _tp_list_append(tp,self.list.val,tp_string(argv[i])); }
     tp_set(tp,tp->builtins,tp_string("ARGV"),self);
 }
+
 
 tp_obj tp_main(TP,char *fname, void *code) {
     return tp_import(tp,fname,"__main__",code);
 }
-
 tp_obj tp_compile(TP, tp_obj text, tp_obj fname) {
     return tp_call(tp,"BUILTINS","compile",tp_params_v(tp,2,text,fname));
 }
 
 tp_obj tp_exec(TP,tp_obj code, tp_obj globals) {
-    tp_obj r = None;
+    tp_obj r=None;
     tp_frame(tp,globals,(void*)code.string.val,&r);
     tp_run(tp,tp->cur);
     return r;
@@ -361,5 +365,6 @@ tp_vm *tp_init(int argc, char *argv[]) {
     tp_compiler(tp);
     return tp;
 }
+    
 
 //
