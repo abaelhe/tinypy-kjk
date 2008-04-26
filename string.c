@@ -142,7 +142,7 @@ tp_obj tp_replace(TP) {
         n += 1;
         p.string.val += i + k.string.len; p.string.len -= i + k.string.len;
     }
-//     fprintf(stderr,"ns: %d\n",n);
+/*     fprintf(stderr,"ns: %d\n",n); */
     l = s.string.len + n * (v.string.len-k.string.len);
     rr = tp_string_t(tp,l);
     r = rr.string.val;

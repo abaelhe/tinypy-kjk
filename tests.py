@@ -14,7 +14,6 @@ if '-mingw32' in ARGV or "-win" in ARGV:
     TINYPY = 'tinypy '
     TMP = 'tmp.txt'
     #TMP = 'stdout.txt'
-
 def system_rm(fname):
     system(RM+fname)
 

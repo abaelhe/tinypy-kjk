@@ -67,6 +67,3 @@ tp_obj tp_params_v(TP,int n,...) {
     va_end(a);
     return r;
 }
-
-//
-
