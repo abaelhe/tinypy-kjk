@@ -184,13 +184,7 @@ void tp_grey(TP,tp_obj);
     return r; \
 }
 #define __params (tp->params)
-
-inline static tp_obj TP_OBJ2(tp_vm *tp) {
-    return tp_get(tp, __params, None);
-}
-
-#define TP_OBJ() TP_OBJ2(tp)
-
+#define TP_OBJ() (tp_get(tp, __params, None))
 inline static tp_obj tp_type(TP,int t,tp_obj v) {
     if (v.type != t) { tp_raise(None,"_tp_type(%d,%s)",t,STR(v)); }
     return v;
@@ -219,10 +213,7 @@ inline static tp_obj tp_number(tp_num v) {
 inline static tp_obj tp_string(char *v) {
     tp_obj val;
     tp_string_ s = {TP_STRING, 0, v, 0};
-    int len = 0;
-    if (v)
-        len = strlen(v);
-    s.len = len;
+    s.len = strlen(v);
     val.string = s;
     return val; 
 }
