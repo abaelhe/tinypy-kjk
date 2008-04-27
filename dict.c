@@ -19,14 +19,21 @@ void _tp_dict_free(_tp_dict *self) {
 // }
 
 int tp_hash(TP,tp_obj v) {
-    switch (v.type) {
+    switch (obj_type(v)) {
         case TP_NONE: return 0;
         case TP_NUMBER: return tp_lua_hash(&v.number.val,sizeof(tp_num));
         case TP_STRING: return tp_lua_hash(v.string.val,v.string.len);
         case TP_DICT: return tp_lua_hash(&v.dict.val,sizeof(void*));
         case TP_LIST: {
-            int r = v.list.val->len; int n; for(n=0; n<v.list.val->len; n++) {
-            tp_obj vv = v.list.val->items[n]; r += vv.type != TP_LIST?tp_hash(tp,v.list.val->items[n]):tp_lua_hash(&vv.list.val,sizeof(void*)); } return r;
+            int r = v.list.val->len; int n; 
+            for(n=0; n<v.list.val->len; n++) {
+                tp_obj vv = v.list.val->items[n];
+                if (obj_type(vv) == TP_LIST)
+                    r += tp_lua_hash(&vv.list.val,sizeof(void*));
+                else
+                    r += tp_hash(tp,v.list.val->items[n]);
+            } 
+            return r;
         }
         case TP_FNC: return tp_lua_hash(&v.fnc.val,sizeof(void*));
         case TP_DATA: return tp_lua_hash(&v.data.val,sizeof(void*));

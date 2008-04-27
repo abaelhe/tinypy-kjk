@@ -6,9 +6,9 @@
 // void tp_delete(TP,tp_obj v) { }
 
 void tp_grey(TP,tp_obj v) {
-    if (v.type < TP_STRING || (!v.gci.data) || *v.gci.data) { return; }
+    if (obj_type(v) < TP_STRING || (!v.gci.data) || *v.gci.data) { return; }
     *v.gci.data = 1;
-    if (v.type == TP_STRING || v.type == TP_DATA) {
+    if (obj_type(v) == TP_STRING || obj_type(v) == TP_DATA) {
         _tp_list_appendx(tp,tp->black,v);
         return;
     }
@@ -16,7 +16,7 @@ void tp_grey(TP,tp_obj v) {
 }
 
 void tp_follow(TP,tp_obj v) {
-    int type = v.type;
+    int type = obj_type(v);
     if (type == TP_LIST) {
         int n;
         for (n=0; n<v.list.val->len; n++) {
@@ -64,7 +64,7 @@ void tp_gc_deinit(TP) {
 }
 
 void tp_delete(TP,tp_obj v) {
-    int type = v.type;
+    int type = obj_type(v);
     if (type == TP_LIST) {
         _tp_list_free(v.list.val);
         return;
@@ -92,7 +92,7 @@ void tp_collect(TP) {
     for (n=0; n<tp->white->len; n++) {
         tp_obj r = tp->white->items[n];
         if (*r.gci.data) { continue; }
-        if (r.type == TP_STRING) {
+        if (obj_type(r) == TP_STRING) {
             //this can't be moved into tp_delete, because tp_delete is
             // also used by tp_track_s to delete redundant strings
             _tp_dict_del(tp,tp->strings,r,"tp_collect");
@@ -133,7 +133,7 @@ void tp_gcinc(TP) {
 }
 
 tp_obj tp_track(TP,tp_obj v) {
-    if (v.type == TP_STRING) {
+    if (obj_type(v) == TP_STRING) {
         int i = _tp_dict_find(tp,tp->strings,v);
         if (i != -1) {
             tp_delete(tp,v);

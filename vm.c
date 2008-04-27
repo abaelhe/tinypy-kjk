@@ -64,7 +64,7 @@ void _tp_raise(TP,tp_obj e) {
         exit(-1);
         return;
     }
-    if (e.type != TP_NONE) { tp->ex = e; }
+    if (obj_type(e) != TP_NONE) { tp->ex = e; }
     tp_grey(tp,e);
     longjmp(tp->buf,1);
 }
@@ -98,16 +98,16 @@ void tp_handle(TP) {
 }
 
 void _tp_call(TP,tp_obj *dest, tp_obj fnc, tp_obj params) {
-    if (fnc.type == TP_DICT) {
+    if (obj_type(fnc) == TP_DICT) {
         _tp_call(tp,dest,tp_get(tp,fnc,tp_string("__call__")),params);
         return;
     }
-    if (fnc.type == TP_FNC && !(fnc.fnc.ftype&1)) {
+    if (obj_type(fnc) == TP_FNC && !(fnc.fnc.ftype&1)) {
         *dest = _tp_tcall(tp,fnc);
         tp_grey(tp,*dest);
         return;
     }
-    if (fnc.type == TP_FNC) {
+    if (obj_type(fnc) == TP_FNC) {
         tp_frame(tp,fnc.fnc.val->globals,fnc.fnc.fval,dest);
         if ((fnc.fnc.ftype&2)) {
             tp->frames[tp->cur].regs[0] = params;

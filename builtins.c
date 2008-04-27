@@ -36,7 +36,7 @@ tp_obj tp_max(TP) {
 
 tp_obj tp_copy(TP) {
     tp_obj r = TP_OBJ();
-    int type = r.type;
+    int type = obj_type(r);
     if (type == TP_LIST) {
         return _tp_list_copy(tp,r);
     } else if (type == TP_DICT) {
@@ -85,10 +85,10 @@ tp_obj tp_system(TP) {
 tp_obj tp_istype(TP) {
     tp_obj v = TP_OBJ();
     char *t = TP_STR();
-    if (strcmp("string",t) == 0) { return tp_number(v.type == TP_STRING); }
-    if (strcmp("list",t) == 0) { return tp_number(v.type == TP_LIST); }
-    if (strcmp("dict",t) == 0) { return tp_number(v.type == TP_DICT); }
-    if (strcmp("number",t) == 0) { return tp_number(v.type == TP_NUMBER); }
+    if (strcmp("string",t) == 0) { return tp_number(obj_type(v) == TP_STRING); }
+    if (strcmp("list",t) == 0) { return tp_number(obj_type(v) == TP_LIST); }
+    if (strcmp("dict",t) == 0) { return tp_number(obj_type(v) == TP_DICT); }
+    if (strcmp("number",t) == 0) { return tp_number(obj_type(v) == TP_NUMBER); }
     tp_raise(None,"is_type(%s,%s)",STR(v),t);
 }
 
@@ -96,7 +96,7 @@ tp_obj tp_istype(TP) {
 tp_obj tp_float(TP) {
     tp_obj v = TP_OBJ();
     int ord = TP_DEFAULT(tp_number(0)).number.val;
-    int type = v.type;
+    int type = obj_type(v);
     if (type == TP_NUMBER) { return v; }
     if (type == TP_STRING) {
         if (strchr(STR(v),'.')) { return tp_number(atof(STR(v))); }

@@ -183,10 +183,11 @@ void tp_grey(TP,tp_obj);
     _tp_raise(tp,tp_printf(tp,fmt,__VA_ARGS__)); \
     return r; \
 }
+#define obj_type(o) o.type
 #define __params (tp->params)
 #define TP_OBJ() (tp_get(tp,__params,None))
 inline static tp_obj tp_type(TP,int t,tp_obj v) {
-    if (v.type != t) { tp_raise(None,"_tp_type(%d,%s)",t,STR(v)); }
+    if (obj_type(v) != t) { tp_raise(None,"_tp_type(%d,%s)",t,STR(v)); }
     return v;
 }
 #define TP_TYPE(t) tp_type(tp,t,TP_OBJ())
