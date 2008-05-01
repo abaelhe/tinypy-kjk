@@ -182,9 +182,7 @@ static char *str_replace(char *s, int slen, char *toReplace, int toReplaceLen, c
         int toCopy;
         pos = str_find(s, slenLeft, toReplace, toReplaceLen);
         if (!pos) {
-            toCopy = s - prev;
-            toCopy = slen - toCopy; /* yes, 2 statements to avoid arithemtic overflow */
-            memcpy(tmp, s, toCopy);
+            memcpy(tmp, s, slenLeft);
             break;
         }
         toCopy = pos - s;
