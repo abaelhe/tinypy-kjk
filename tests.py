@@ -184,13 +184,16 @@ def t_render(ss,ex,exact=True):
         f = save(fname,r)
         n += 1
     system_rm('tmp.txt')
-    print ss
-    print ex
     print(VM + fname + " > tmp.txt")
     system(VM+fname+' > tmp.txt')
     res = load(TMP).strip()
     #print(ss,ex,res)
-    if exact: assert(res == ex)
+    if exact:
+        if not res == ex:
+            print "ss:  '" + str(ss) + "'"
+            print "ex:  '" + str(ex) + "'"
+            print "res: '" + str(res) + "'"
+        assert(res == ex)
     else: assert(ex in res)
 
 def test_range():
