@@ -142,12 +142,16 @@ enum {
     TP_ITOTAL
 };
 
-// char *tp_strings[TP_ITOTAL] = {
-//     "EOF","ADD","SUB","MUL","DIV","POW","AND","OR","CMP","GET","SET","NUM",
-//     "STR","GGET","GSET","MOVE","DEF","PASS","JUMP","CALL","RETURN","IF","DEBUG",
-//     "EQ","LE","LT","DICT","LIST","NONE","LEN","LINE","PARAMS","IGET","FILE",
-//     "NAME","NE","HAS","RAISE","SETJMP","MOD","LSH","RSH","ITER","DEL","REGS",
-// };
+#define DEBUG_STEP 0
+
+#if DEBUG_STEP
+char *tp_strings[TP_ITOTAL] = {
+     "EOF","ADD","SUB","MUL","DIV","POW","AND","OR","CMP","GET","SET","NUM",
+     "STR","GGET","GSET","MOVE","DEF","PASS","JUMP","CALL","RETURN","IF","DEBUG",
+     "EQ","LE","LT","DICT","LIST","NONE","LEN","LINE","PARAMS","IGET","FILE",
+     "NAME","NE","HAS","RAISE","SETJMP","MOD","LSH","RSH","ITER","DEL","REGS",
+};
+#endif
 
 #define VA ((int)e.regs.a)
 #define VB ((int)e.regs.b)
@@ -166,8 +170,13 @@ int tp_step(TP) {
     tp_code *cur = f->cur;
     while(1) {
     tp_code e = *cur;
-//     fprintf(stderr,"%2d.%4d: %-6s %3d %3d %3d\n",tp->cur,cur-f->codes,tp_strings[e.i],VA,VB,VC);
-//     int i; for(i=0;i<16;i++) { fprintf(stderr,"%d: %s\n",i,STR(regs[i])); }
+#if DEBUG_STEP
+    int i;
+    fprintf(stderr,"%2d.%4d: %-6s %3d %3d %3d\n", tp->cur, cur-f->codes, tp_strings[e.i], VA, VB, VC);
+    for(i=0; i<16; i++) { 
+        fprintf(stderr, "%d: %s\n", i, STR(regs[i])); 
+    }
+#endif
     switch (e.i) {
         case TP_IEOF: tp_return(tp,None); SR(0); break;
         case TP_IADD: RA = tp_add(tp,RB,RC); break;
