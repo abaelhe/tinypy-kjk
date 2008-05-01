@@ -128,18 +128,47 @@ tp_obj tp_strip(TP) {
     return tp_track(tp,r);
 }
 
-char *str_replace(char *s, char *toReplace, char *replaceWith, int *lenOut)
+/* like strstr, but handles embedded '\0's in both strings */
+static char *str_find(char *s, int slen, char *toFind, int toFindLen)
 {
-    int slen = strlen(s);
-    int toReplaceLen = strlen(toReplace);
-    int replaceWithLen = strlen(replaceWith);
+    char *tmp;
+    char *toFindTmp;
+    int toFindLenLeft;
+    char c;
+    if (0 == toFindLen)
+        return NULL;
+    c = *toFind;
+    for (;;) {
+        if (toFindLen > slen)
+            return NULL;
+        if (c != *s++) {
+            --slen;
+            continue;
+        }
+        tmp = s;
+        toFindLenLeft = toFindLen - 1;
+        toFindTmp = toFind + 1;
+        while (toFindLenLeft > 0) {
+            if (*tmp++ != *toFindTmp++)
+                return NULL;
+            --toFindLenLeft;
+        }
+        return s-1;
+    }
+}
+
+static char *str_replace(char *s, int slen, char *toReplace, int toReplaceLen, char *replaceWith, int replaceWithLen, int *lenOut)
+{
     char *pos;
     int toReplaceCount = 0;
     char *result;
     char *prev;
     char *tmp = s;
+    int slenLeft;
     for (;;) {
-        pos = strstr(tmp, toReplace);
+        slenLeft = tmp - s;
+        slenLeft = slen - slenLeft; /* yes, 2 statements to avoid arithmetic overflow */
+        pos = str_find(tmp, slenLeft, toReplace, toReplaceLen);
         if (!pos) break;
         ++toReplaceCount;
         tmp = pos + toReplaceLen;
@@ -148,9 +177,10 @@ char *str_replace(char *s, char *toReplace, char *replaceWith, int *lenOut)
     result = (char*)malloc(*lenOut+1);
     tmp = result;
     prev = s;
+    slenLeft = slen;
     for (;;) {
         int toCopy;
-        pos = strstr(s, toReplace);
+        pos = str_find(s, slenLeft, toReplace, toReplaceLen);
         if (!pos) {
             toCopy = s - prev;
             toCopy = slen - toCopy; /* yes, 2 statements to avoid arithemtic overflow */
@@ -163,6 +193,7 @@ char *str_replace(char *s, char *toReplace, char *replaceWith, int *lenOut)
         memcpy(tmp, replaceWith, replaceWithLen);
         tmp += replaceWithLen;
         prev = s;
+        slenLeft -= toCopy + toReplaceLen;
         s = pos + toReplaceLen;
     }
     result[*lenOut] = 0;
@@ -174,7 +205,7 @@ tp_obj tp_replace(TP) {
     tp_obj k = TP_OBJ();
     tp_obj v = TP_OBJ();
     int strlength;
-    char *strresult = str_replace(s->string.val, k->string.val, v->string.val, &strlength);
+    char *strresult = str_replace(s->string.val, s->string.len, k->string.val, k->string.len, v->string.val, v->string.len, &strlength);
     tp_obj result = tp_string_n(strresult, strlength);
     return tp_track(tp, result);
 }
