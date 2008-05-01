@@ -56,7 +56,7 @@ int _tp_list_find(TP,_tp_list *self, tp_obj v) {
 tp_obj tp_index(TP) {
     tp_obj self = TP_OBJ();
     tp_obj v = TP_OBJ();
-    int i = _tp_list_find(tp,self.list.val,v);
+    int i = _tp_list_find(tp, self->list.val,v);
     if (i < 0) { tp_raise(None,"tp_index(%s,%s) - item not found",STR(self),STR(v)); }
     return tp_number(i);
 }
@@ -66,32 +66,33 @@ _tp_list *_tp_list_new(void) {
 }
 
 tp_obj _tp_list_copy(TP, tp_obj rr) {
-    tp_obj val = {TP_LIST};
-    _tp_list *o = rr.list.val;
-    _tp_list *r = _tp_list_new(); *r = *o;
+    tp_obj val = obj_alloc(TP_LIST);
+    _tp_list *o = rr->list.val;
+    _tp_list *r = _tp_list_new(); 
+    *r = *o;
     r->items = tp_malloc(sizeof(tp_obj)*o->alloc);
     memcpy(r->items,o->items,sizeof(tp_obj)*o->alloc);
-    val.list.val = r;
+    val->list.val = r;
     return tp_track(tp,val);
 }
 
 tp_obj tp_append(TP) {
     tp_obj self = TP_OBJ();
     tp_obj v = TP_OBJ();
-    _tp_list_append(tp,self.list.val,v);
+    _tp_list_append(tp, self->list.val, v);
     return None;
 }
 
 tp_obj tp_pop(TP) {
     tp_obj self = TP_OBJ();
-    return _tp_list_pop(tp,self.list.val,self.list.val->len-1,"pop");
+    return _tp_list_pop(tp, self->list.val, self->list.val->len-1, "pop");
 }
 
 tp_obj tp_insert(TP) {
     tp_obj self = TP_OBJ();
     int n = TP_NUM();
     tp_obj v = TP_OBJ();
-    _tp_list_insert(tp,self.list.val,n,v);
+    _tp_list_insert(tp, self->list.val,n,v);
     return None;
 }
 
@@ -99,23 +100,23 @@ tp_obj tp_extend(TP) {
     tp_obj self = TP_OBJ();
     tp_obj v = TP_OBJ();
     int i;
-    for (i=0; i<v.list.val->len; i++) {
-        _tp_list_append(tp,self.list.val,v.list.val->items[i]);
+    for (i=0; i < v->list.val->len; i++) {
+        _tp_list_append(tp, self->list.val, v->list.val->items[i]);
     }
     return None;
 }
 
 tp_obj tp_list(TP) {
-    tp_obj r = {TP_LIST};
-    r.list.val = _tp_list_new();
+    tp_obj r = obj_alloc(TP_LIST);
+    r->list.val = _tp_list_new();
     return tp ? tp_track(tp,r) : r;
 }
 
 tp_obj tp_list_n(TP,int n,tp_obj *argv) {
     int i; 
-    tp_obj r = tp_list(tp); _tp_list_realloc(r.list.val,n);
+    tp_obj r = tp_list(tp); _tp_list_realloc(r->list.val,n);
     for (i=0; i<n; i++) {
-        _tp_list_append(tp,r.list.val,argv[i]); 
+        _tp_list_append(tp,r->list.val,argv[i]); 
     }
     return r;
 }
@@ -126,7 +127,7 @@ int _tp_sort_cmp(tp_obj *a,tp_obj *b) {
 
 tp_obj tp_sort(TP) {
     tp_obj self = TP_OBJ();
-    qsort(self.list.val->items, self.list.val->len, sizeof(tp_obj), (int(*)(const void*,const void*))_tp_sort_cmp);
+    qsort(self->list.val->items, self->list.val->len, sizeof(tp_obj), (int(*)(const void*,const void*))_tp_sort_cmp);
     return None;
 }
 

@@ -14,6 +14,7 @@ if '-mingw32' in ARGV or "-win" in ARGV:
     TINYPY = 'tinypy '
     TMP = 'tmp.txt'
     #TMP = 'stdout.txt'
+
 def system_rm(fname):
     system(RM+fname)
 
@@ -29,6 +30,7 @@ def t_show(t):
     if t['type'] == 'symbol': return t['val']
     if t['type'] == 'name': return '$'+t['val']
     return t['type']
+
 def t_tokenize(s,exp=''):
     import tokenize
     result = tokenize.tokenize(s)
@@ -62,7 +64,6 @@ if __name__ == '__main__':
     t_tokenize("  x","indent $x dedent")
     t_tokenize("  #","")
     t_tokenize("None","None")
-
 
 ################################################################################
 
@@ -183,12 +184,14 @@ def t_render(ss,ex,exact=True):
         f = save(fname,r)
         n += 1
     system_rm('tmp.txt')
+    print ss
+    print ex
+    print(VM + fname + " > tmp.txt")
     system(VM+fname+' > tmp.txt')
     res = load(TMP).strip()
     #print(ss,ex,res)
     if exact: assert(res == ex)
     else: assert(ex in res)
-
 
 def test_range():
     t_render("""print(str(range(4))[:5])""","<list")

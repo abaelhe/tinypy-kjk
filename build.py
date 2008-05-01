@@ -135,7 +135,6 @@ def build_tp():
     for mod in MODS:
         out.append("""extern unsigned char tp_%s[];"""%mod)
 
-                
     for fname in ['list.c','dict.c','misc.c','string.c','builtins.c',
         'gc.c','ops.c','vm.c','tp.c','bc.c']:
         for line in open(fname,'r'):
@@ -146,8 +145,6 @@ def build_tp():
     f = open('tinypy.c','w')
     f.write('\n'.join(out))
     f.close()
-    
-    
 
 def bootstrap():
     compat = '-compat' in sys.argv

@@ -9,7 +9,9 @@ tp_vm *_tp_init(void) {
     for (i=0; i<256; i++) { tp->chars[i][0]=i; }
     tp_gc_init(tp);
     tp->_regs = tp_list(tp);
-    for (i=0; i<TP_REGS; i++) { tp_set(tp,tp->_regs,None,None); }
+    for (i=0; i<TP_REGS; i++) { 
+        tp_set(tp, tp->_regs, None, None); 
+    }
     tp->builtins = tp_dict(tp);
     tp->modules = tp_dict(tp);
     tp->_params = tp_list(tp);
@@ -21,21 +23,21 @@ tp_vm *_tp_init(void) {
     tp_set(tp,tp->builtins,tp_string("MODULES"),tp->modules);
     tp_set(tp,tp->modules,tp_string("BUILTINS"),tp->builtins);
     tp_set(tp,tp->builtins,tp_string("BUILTINS"),tp->builtins);
-    tp->regs = tp->_regs.list.val->items;
+    tp->regs = tp->_regs->list.val->items;
     tp_full(tp);
     return tp;
 }
 
 void tp_deinit(TP) {
-    while (tp->root.list.val->len) {
-        _tp_list_pop(tp,tp->root.list.val,0,"tp_deinit");
+    while (tp->root->list.val->len) {
+        _tp_list_pop(tp,tp->root->list.val,0,"tp_deinit");
     }
-    tp_full(tp); tp_full(tp);
+    tp_full(tp); 
+    tp_full(tp);
     tp_delete(tp,tp->root);
     tp_gc_deinit(tp);
     tp_free(tp);
 }
-
 
 // tp_frame_ 
 void tp_frame(TP,tp_obj globals,tp_code *codes,tp_obj *ret_dest) {
@@ -99,19 +101,19 @@ void tp_handle(TP) {
 
 void _tp_call(TP,tp_obj *dest, tp_obj fnc, tp_obj params) {
     if (obj_type(fnc) == TP_DICT) {
-        _tp_call(tp,dest,tp_get(tp,fnc,tp_string("__call__")),params);
+        _tp_call(tp,dest,tp_get(tp, fnc, tp_string("__call__")),params);
         return;
     }
-    if (obj_type(fnc) == TP_FNC && !(fnc.fnc.ftype&1)) {
+    if (obj_type(fnc) == TP_FNC && !(fnc->fnc.ftype&1)) {
         *dest = _tp_tcall(tp,fnc);
         tp_grey(tp,*dest);
         return;
     }
     if (obj_type(fnc) == TP_FNC) {
-        tp_frame(tp,fnc.fnc.val->globals,fnc.fnc.fval,dest);
-        if ((fnc.fnc.ftype&2)) {
+        tp_frame(tp, fnc->fnc.val->globals, fnc->fnc.fval,dest);
+        if ((fnc->fnc.ftype&2)) {
             tp->frames[tp->cur].regs[0] = params;
-            _tp_list_insert(tp,params.list.val,0,fnc.fnc.val->self);
+            _tp_list_insert(tp, params->list.val,0, fnc->fnc.val->self);
         } else {
             tp->frames[tp->cur].regs[0] = params;
         }
@@ -187,9 +189,9 @@ int tp_step(TP) {
         case TP_IIF: if (tp_bool(tp,RA)) { cur += 1; } break;
         case TP_IGET: RA = tp_get(tp,RB,RC); GA; break;
         case TP_IITER:
-            if (RC.number.val < tp_len(tp,RB).number.val) {
+            if (RC->number.val < tp_len(tp,RB)->number.val) {
                 RA = tp_iter(tp,RB,RC); GA;
-                RC.number.val += 1;
+                RC->number.val += 1;
                 cur += 1;
             }
             break;
@@ -199,7 +201,7 @@ int tp_step(TP) {
         case TP_IDEL: tp_del(tp,RA,RB); break;
         case TP_IMOVE: RA = RB; break;
         case TP_INUMBER:
-            RA = tp_number(*(tp_num*)(*++cur).string.val);
+            RA = tp_number(*(tp_num*)(++cur)->string.val);
             cur += sizeof(tp_num)/4;
             continue;
         case TP_ISTRING:
@@ -273,9 +275,9 @@ tp_obj tp_import(TP,char *fname, char *name, void *codes) {
     if (!codes) {
         tp_params_v(tp,1,tp_string(fname));
         code = tp_load(tp);
-        codes = code.string.val;
+        codes = code->string.val;
     } else {
-        code = tp_data(tp,codes);
+        code = tp_data(tp, codes);
     }
 
     g = tp_dict(tp);
@@ -294,18 +296,17 @@ tp_obj tp_import(TP,char *fname, char *name, void *codes) {
 tp_obj tp_exec_(TP) {
     tp_obj code = TP_OBJ();
     tp_obj globals = TP_OBJ();
-    tp_frame(tp,globals,(void*)code.string.val,0);
+    tp_frame(tp, globals,(void*)code->string.val,0);
     return None;
 }
-
 
 tp_obj tp_import_(TP) {
     tp_obj mod = TP_OBJ();
     char *s;
     tp_obj r;
 
-    if (tp_has(tp,tp->modules,mod).number.val) {
-        return tp_get(tp,tp->modules,mod);
+    if (tp_has(tp, tp->modules,mod)->number.val) {
+        return tp_get(tp, tp->modules, mod);
     }
 
     s = STR(mod);
@@ -334,7 +335,7 @@ void tp_builtins(TP) {
 void tp_args(TP,int argc, char *argv[]) {
     tp_obj self = tp_list(tp);
     int i;
-    for (i=1; i<argc; i++) { _tp_list_append(tp,self.list.val,tp_string(argv[i])); }
+    for (i=1; i<argc; i++) { _tp_list_append(tp,self->list.val,tp_string(argv[i])); }
     tp_set(tp,tp->builtins,tp_string("ARGV"),self);
 }
 
@@ -347,8 +348,8 @@ tp_obj tp_compile(TP, tp_obj text, tp_obj fname) {
 }
 
 tp_obj tp_exec(TP,tp_obj code, tp_obj globals) {
-    tp_obj r=None;
-    tp_frame(tp,globals,(void*)code.string.val,&r);
+    tp_obj r = None;
+    tp_frame(tp, globals, (void*)code->string.val,&r);
     tp_run(tp,tp->cur);
     return r;
 }

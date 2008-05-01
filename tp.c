@@ -13,7 +13,7 @@
 void tp_compiler(TP);
 #include "vm.c"
 
-tp_obj None = {TP_NONE};
+tp_obj_ NoneObj = {TP_NONE};
 
 #if TP_COMPILER
 #include "bc.c"

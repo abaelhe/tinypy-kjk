@@ -13,7 +13,7 @@ tp_obj tp_print(TP) {
 tp_obj tp_bind(TP) {
     tp_obj r = TP_OBJ();
     tp_obj self = TP_OBJ();
-    return tp_fnc_new(tp,r.fnc.ftype|2,r.fnc.fval,self,r.fnc.val->globals);
+    return tp_fnc_new(tp, r->fnc.ftype|2, r->fnc.fval, self, r->fnc.val->globals);
 }
 
 tp_obj tp_min(TP) {
@@ -61,15 +61,23 @@ tp_obj tp_assert(TP) {
 tp_obj tp_range(TP) {
     int a,b,c,i;
     tp_obj r = tp_list(tp);
-    switch (__params.list.val->len) {
-        case 1: a = 0; b = TP_NUM(); c = 1; break;
+    switch (__params->list.val->len) {
+        case 1: 
+            a = 0; 
+            b = TP_NUM(); 
+            c = 1; 
+            break;
         case 2:
-        case 3: a = TP_NUM(); b = TP_NUM(); c = TP_DEFAULT(tp_number(1)).number.val; break;
+        case 3: 
+            a = TP_NUM(); 
+            b = TP_NUM(); 
+            c = TP_DEFAULT(tp_number(1))->number.val; 
+            break;
         default: return r;
     }
     if (c != 0) {
         for (i=a; (c>0) ? i<b : i>b; i+=c) {
-            _tp_list_append(tp,r.list.val,tp_number(i));
+            _tp_list_append(tp, r->list.val, tp_number(i));
         }
     }
     return r;
@@ -95,7 +103,7 @@ tp_obj tp_istype(TP) {
 
 tp_obj tp_float(TP) {
     tp_obj v = TP_OBJ();
-    int ord = TP_DEFAULT(tp_number(0)).number.val;
+    int ord = TP_DEFAULT(tp_number(0))->number.val;
     int type = obj_type(v);
     if (type == TP_NUMBER) { return v; }
     if (type == TP_STRING) {
@@ -112,7 +120,7 @@ tp_obj tp_save(TP) {
     FILE *f;
     f = fopen(fname,"wb");
     if (!f) { tp_raise(None,"tp_save(%s,...)",fname); }
-    fwrite(v.string.val,v.string.len,1,f);
+    fwrite(v->string.val, v->string.len,1,f);
     fclose(f);
     return None;
 }
@@ -131,7 +139,7 @@ tp_obj tp_load(TP) {
         tp_raise(None,"tp_load(%s)",fname); 
     }
     r = tp_string_t(tp,l);
-    s = r.string.val;
+    s = r->string.val;
     fread(s,1,l,f);
     fclose(f);
     return tp_track(tp,r);
@@ -141,15 +149,15 @@ tp_obj tp_load(TP) {
 tp_obj tp_fpack(TP) {
     tp_num v = TP_NUM();
     tp_obj r = tp_string_t(tp,sizeof(tp_num));
-    *(tp_num*)r.string.val = v; 
+    *(tp_num*)r->string.val = v; 
     return tp_track(tp,r);
 }
 
 tp_obj tp_abs(TP) {
-    return tp_number(fabs(tp_float(tp).number.val));
+    return tp_number(fabs(tp_float(tp)->number.val));
 }
 tp_obj tp_int(TP) {
-    return tp_number((long)tp_float(tp).number.val);
+    return tp_number((long)tp_float(tp)->number.val);
 }
 tp_num _roundf(tp_num v) {
     tp_num av = fabs(v); tp_num iv = (long)av;
@@ -157,7 +165,7 @@ tp_num _roundf(tp_num v) {
     return (v<0?-av:av);
 }
 tp_obj tp_round(TP) {
-    return tp_number(_roundf(tp_float(tp).number.val));
+    return tp_number(_roundf(tp_float(tp)->number.val));
 }
 
 tp_obj tp_exists(TP) {

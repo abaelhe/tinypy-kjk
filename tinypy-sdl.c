@@ -34,7 +34,8 @@ tp_obj update(TP) {
     int w = TP_NUM();
     int h = TP_NUM();
     SDL_Rect r;
-    r.x=x;r.y=y;r.w=w;r.h=h;
+    r.x=x; r.y=y;
+    r.w=w; r.h=h;
     SDL_UpdateRects(s, 1, &r);
     return None;
 }
@@ -44,7 +45,7 @@ tp_obj get_ticks(TP) {
 }
 
 tp_obj _sdl_event_get(TP,tp_obj self, tp_obj k) {
-    SDL_Event *e = self.data.val;
+    SDL_Event *e = self->data.val;
     char *key = STR(k);
     if (strcmp(key,"type")==0) { return tp_number(e->type); }
     return None;
@@ -54,7 +55,7 @@ tp_obj gfx_get_event(TP) {
     SDL_Event *e = malloc(sizeof(SDL_Event));
     if (SDL_PollEvent(e)) {
         tp_obj r = tp_data(tp,e);
-        r.data.meta->get = _sdl_event_get;
+        r->data.meta->get = _sdl_event_get;
         return r;
     }
     return None;

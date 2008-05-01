@@ -56,7 +56,7 @@ typedef struct tp_data_ {
     struct tp_meta *meta;
 } tp_data_;
 
-typedef union tp_obj {
+typedef union tp_obj_ {
     int type;
     tp_number_ number;
     struct { int type; int *data; } gci;
@@ -65,7 +65,9 @@ typedef union tp_obj {
     tp_list_ list;
     tp_fnc_ fnc;
     tp_data_ data;
-} tp_obj;
+} tp_obj_;
+
+typedef tp_obj_* tp_obj;
 
 typedef struct _tp_string {
     int gci;
@@ -164,9 +166,9 @@ typedef struct _tp_data {
 // NOTE: these are the few out of namespace items for convenience
 #define True tp_number(1)
 #define False tp_number(0)
-#define STR(v) ((tp_str(tp,(v))).string.val)
-
-extern tp_obj None;
+#define STR(v) ((tp_str(tp,(v)))->string.val)
+extern tp_obj_ NoneObj;
+#define None &NoneObj
 
 void tp_set(TP,tp_obj,tp_obj,tp_obj);
 tp_obj tp_get(TP,tp_obj,tp_obj);
@@ -183,21 +185,23 @@ void tp_grey(TP,tp_obj);
     _tp_raise(tp,tp_printf(tp,fmt,__VA_ARGS__)); \
     return r; \
 }
-#define obj_type(o) o.type
+#define obj_type(o) o->type
 #define __params (tp->params)
 #define TP_OBJ() (tp_get(tp,__params,None))
 inline static tp_obj tp_type(TP,int t,tp_obj v) {
-    if (obj_type(v) != t) { tp_raise(None,"_tp_type(%d,%s)",t,STR(v)); }
+    if (obj_type(v) != t) { 
+        tp_raise(None, "_tp_type(%d,%s)", t, STR(v)); 
+    }
     return v;
 }
 #define TP_TYPE(t) tp_type(tp,t,TP_OBJ())
-#define TP_NUM() (TP_TYPE(TP_NUMBER).number.val)
+#define TP_NUM() (TP_TYPE(TP_NUMBER)->number.val)
 #define TP_STR() (STR(TP_TYPE(TP_STRING)))
-#define TP_DEFAULT(d) (__params.list.val->len?tp_get(tp,__params,None):(d))
+#define TP_DEFAULT(d) (__params->list.val->len ? tp_get(tp,__params,None):(d))
 #define TP_LOOP(e) \
-    int __l = __params.list.val->len; \
+    int __l = __params->list.val->len; \
     int __i; for (__i=0; __i<__l; __i++) { \
-    (e) = _tp_list_get(tp,__params.list.val,__i,"TP_LOOP");
+    (e) = _tp_list_get(tp,__params->list.val,__i,"TP_LOOP");
 #define TP_END \
     }
 
@@ -205,25 +209,28 @@ inline static int _tp_min(int a, int b) { return (a<b?a:b); }
 inline static int _tp_max(int a, int b) { return (a>b?a:b); }
 inline static int _tp_sign(tp_num v) { return (v<0?-1:(v>0?1:0)); }
 
-inline static tp_obj tp_number(tp_num v) { 
-    tp_obj val = {TP_NUMBER};
-    val.number.val = v;
-    return val; 
+inline static tp_obj obj_alloc(int type) {
+    tp_obj v = (tp_obj) malloc(sizeof(tp_obj_));
+    v->type = type;
+    return v;
 }
 
-inline static tp_obj tp_string(char *v) {
-    tp_obj val;
-    tp_string_ s = {TP_STRING, 0, v, 0};
-    s.len = strlen(v);
-    val.string = s;
+inline static tp_obj tp_number(tp_num v) { 
+    tp_obj val = obj_alloc(TP_NUMBER);
+    val->number.val = v;
     return val; 
 }
 
 inline static tp_obj tp_string_n(char *v,int n) {
-    tp_obj val;
-    tp_string_ s = {TP_STRING, 0,v,n};
-    val.string = s;
+    tp_obj val = obj_alloc(TP_STRING);
+    val->string.info = 0;
+    val->string.val = v;
+    val->string.len = n;
     return val;
+}
+
+inline static tp_obj tp_string(char *v) {
+    return tp_string_n(v, strlen(v));
 }
 
 #endif
