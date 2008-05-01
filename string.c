@@ -135,33 +135,37 @@ char *str_replace(char *s, char *toReplace, char *replaceWith, int *lenOut)
     int replaceWithLen = strlen(replaceWith);
     char *pos;
     int toReplaceCount = 0;
-    char *tmp2;
-    char *tmp = s;
     char *result;
-    while (strstr(tmp, toReplace)) {
+    char *prev;
+    char *tmp = s;
+    for (;;) {
+        pos = strstr(tmp, toReplace);
+        if (!pos) break;
         ++toReplaceCount;
-        tmp += toReplaceLen;
+        tmp = pos + toReplaceLen;
     }
     *lenOut = slen + toReplaceCount * (replaceWithLen - toReplaceLen);
     result = (char*)malloc(*lenOut+1);
     tmp = result;
+    prev = s;
     for (;;) {
         int toCopy;
         pos = strstr(s, toReplace);
         if (!pos) {
-            toCopy = s - ;
+            toCopy = s - prev;
             toCopy = slen - toCopy; /* yes, 2 statements to avoid arithemtic overflow */
             memcpy(tmp, s, toCopy);
             break;
         }
-        toCopy = (pos - s);
+        toCopy = pos - s;
         memcpy(tmp, s, toCopy);
         tmp += toCopy;
         memcpy(tmp, replaceWith, replaceWithLen);
         tmp += replaceWithLen;
+        prev = s;
         s = pos + toReplaceLen;
     }
-    result[*lenOut-1] = 0;
+    result[*lenOut] = 0;
     return result;
 }
 
@@ -172,40 +176,6 @@ tp_obj tp_replace(TP) {
     int strlength;
     char *strresult = str_replace(s->string.val, k->string.val, v->string.val, &strlength);
     tp_obj result = tp_string_n(strresult, strlength);
-#if 0
-    tp_obj p = s;
-    int i,n = 0;
-    int c;
-    int l;
-    tp_obj rr;
-    char *r;
-    char *d;
-    tp_obj z;
-    while ((i = _tp_str_index(p,k)) != -1) {
-        n += 1;
-        p->string.val += i + k->string.len; 
-        p->string.len -= i + k->string.len;
-    }
-/*     fprintf(stderr,"ns: %d\n",n); */
-    l = s->string.len + n * (v->string.len - k->string.len);
-    rr = tp_string_t(tp,l);
-    r = rr->string.val;
-    d = r;
-    z = p = s;
-    while ((i = _tp_str_index(p,k)) != -1) {
-        p->string.val += i; 
-        p->string.len -= i;
-        memcpy(d, z->string.val, c=(p->string.val-z->string.val));
-        d += c;
-        p->string.val += k->string.len; 
-        p->string.len -= k->string.len;
-        memcpy(d, v->string.val, v->string.len); 
-        d += v->string.len;
-        z = p;
-    }
-    memcpy(d, z->string.val, (s->string.val + s->string.len) - z->string.val); 
-#endif
-
     return tp_track(tp, result);
 }
 
