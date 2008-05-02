@@ -124,7 +124,14 @@ tp_obj _tp_dict_get(TP,_tp_dict *self,tp_obj k, char *error) {
 
 void _tp_dict_del(TP,_tp_dict *self,tp_obj k, char *error) {
     int n = _tp_dict_find(tp,self,k);
-    if (n < 0) { tp_raise(,"%s: KeyError: %s\n",error,STR(k)); }
+    if (n < 0) { 
+#if 0
+        /* TODO figure out this happens */
+        tp_raise(,"%s: KeyError: %s\n",error,STR(k)); 
+#else
+        return;
+#endif
+    }
     self->items[n].used = -1;
     self->len -= 1;
 }
@@ -181,5 +188,4 @@ tp_obj tp_dict_n(TP,int n, tp_obj* argv) {
     }
     return r;
 }
-
 

@@ -31,7 +31,6 @@ int tp_bool(TP,tp_obj v) {
     return 1;
 }
 
-
 tp_obj tp_has(TP,tp_obj self, tp_obj k) {
     int type = obj_type(self);
     if (type == TP_DICT) {
