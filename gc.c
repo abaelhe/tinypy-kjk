@@ -9,12 +9,27 @@
 */
 
 int objallocs = 0;
+int objallocsfromfreelist = 0;
 int objfrees = 0;
 int objallocstats[TP_DATA+1] = {0};
 int objfreestats[TP_DATA+1] = {0};
 
+typedef struct freelist {
+    struct freelist *next;
+} freelist;
+
+/* TODO: free objects on objfreelist at some point */
+freelist *objfreelist = NULL;
+
 tp_obj obj_alloc(objtype type) {
-    tp_obj v = (tp_obj) malloc(sizeof(tp_obj_));
+    tp_obj v;
+    if (objfreelist) {
+        v = (tp_obj)objfreelist;
+        objfreelist = objfreelist->next;
+        ++objallocsfromfreelist;
+    } else {
+        v = (tp_obj) malloc(sizeof(tp_obj_));
+    }
     memset(v, 0xdd, sizeof(tp_obj_));
     v->type = type;
     ++objallocs;
@@ -23,10 +38,16 @@ tp_obj obj_alloc(objtype type) {
 }
 
 void obj_free(tp_obj v) {
+    freelist *entry;
     ++objfrees;
     int type = obj_type(v);
     ++objfreestats[type];
+    entry = (freelist*)v;
+    entry->next = objfreelist;
+    objfreelist = entry;
+#if 0
     free(v);
+#endif
 }
 
 tp_obj tp_number(tp_vm *tp, tp_num v) { 
