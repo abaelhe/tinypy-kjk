@@ -40,14 +40,14 @@ tp_obj update(TP) {
     return None;
 }
 
-tp_obj get_ticks(TP) {
-    return tp_number(SDL_GetTicks());
+tp_obj get_ticks(tp_vm *tp) {
+    return tp_number(tp, SDL_GetTicks());
 }
 
-tp_obj _sdl_event_get(TP,tp_obj self, tp_obj k) {
+tp_obj _sdl_event_get(tp_vm *tp, tp_obj self, tp_obj k) {
     SDL_Event *e = self->data.val;
     char *key = STR(k);
-    if (strcmp(key,"type")==0) { return tp_number(e->type); }
+    if (strcmp(key,"type")==0) { return tp_number(tp, e->type); }
     return None;
 }
 
@@ -61,18 +61,17 @@ tp_obj gfx_get_event(TP) {
     return None;
 }
 
-tp_obj get_mouse_pos(TP) {
+tp_obj get_mouse_pos(tp_vm *tp) {
     int x,y,b;
     b = SDL_GetMouseState(&x,&y);
     tp_obj r;
     r = tp_dict_n(tp,3,(tp_obj[]){
-        tp_string("x"),tp_number(x),
-        tp_string("y"),tp_number(y),
-        tp_string("b"),tp_number(b)
+        tp_string("x"),tp_number(tp, x),
+        tp_string("y"),tp_number(tp, y),
+        tp_string("b"),tp_number(tp, b)
         });
     return r;
 }
-
 
 void sdl_init(TP) {
     tp_obj context = tp->builtins;

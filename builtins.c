@@ -58,7 +58,7 @@ tp_obj tp_assert(TP) {
     tp_raise(None,"%s","assert failed");
 }
 
-tp_obj tp_range(TP) {
+tp_obj tp_range(tp_vm *tp) {
     int a,b,c,i;
     tp_obj r = tp_list(tp);
     switch (__params->list.val->len) {
@@ -71,50 +71,49 @@ tp_obj tp_range(TP) {
         case 3: 
             a = TP_NUM(); 
             b = TP_NUM(); 
-            c = TP_DEFAULT(tp_number(1))->number.val; 
+            c = TP_DEFAULT(tp_number(tp, 1))->number.val; 
             break;
         default: return r;
     }
     if (c != 0) {
         for (i=a; (c>0) ? i<b : i>b; i+=c) {
-            _tp_list_append(tp, r->list.val, tp_number(i));
+            _tp_list_append(tp, r->list.val, tp_number(tp, i));
         }
     }
     return r;
 }
 
-
-tp_obj tp_system(TP) {
+tp_obj tp_system(tp_vm *tp) {
     char *s = TP_STR();
     int r = system(s);
-    return tp_number(r);
+    return tp_number(tp, r);
 }
 
-tp_obj tp_istype(TP) {
+tp_obj tp_istype(tp_vm *tp) {
     tp_obj v = TP_OBJ();
     char *t = TP_STR();
-    if (strcmp("string",t) == 0) { return tp_number(obj_type(v) == TP_STRING); }
-    if (strcmp("list",t) == 0) { return tp_number(obj_type(v) == TP_LIST); }
-    if (strcmp("dict",t) == 0) { return tp_number(obj_type(v) == TP_DICT); }
-    if (strcmp("number",t) == 0) { return tp_number(obj_type(v) == TP_NUMBER); }
+    if (strcmp("string",t) == 0) { return tp_number(tp, obj_type(v) == TP_STRING); }
+    if (strcmp("list",t) == 0) { return tp_number(tp, obj_type(v) == TP_LIST); }
+    if (strcmp("dict",t) == 0) { return tp_number(tp, obj_type(v) == TP_DICT); }
+    if (strcmp("number",t) == 0) { return tp_number(tp, obj_type(v) == TP_NUMBER); }
     tp_raise(None,"is_type(%s,%s)",STR(v),t);
 }
 
-
-tp_obj tp_float(TP) {
+tp_obj tp_float(tp_vm *tp) {
     tp_obj v = TP_OBJ();
-    int ord = TP_DEFAULT(tp_number(0))->number.val;
+    int ord = TP_DEFAULT(tp_number(tp, 0))->number.val;
     int type = obj_type(v);
     if (type == TP_NUMBER) { return v; }
     if (type == TP_STRING) {
-        if (strchr(STR(v),'.')) { return tp_number(atof(STR(v))); }
-        return(tp_number(strtol(STR(v),0,ord)));
+        if (strchr(STR(v),'.')) { 
+            return tp_number(tp, atof(STR(v))); 
+        }
+        return(tp_number(tp, strtol(STR(v),0,ord)));
     }
     tp_raise(None,"tp_float(%s)",STR(v));
 }
 
-
-tp_obj tp_save(TP) {
+tp_obj tp_save(tp_vm *tp) {
     char *fname = TP_STR();
     tp_obj v = TP_OBJ();
     FILE *f;
@@ -153,29 +152,34 @@ tp_obj tp_fpack(TP) {
     return tp_track(tp,r);
 }
 
-tp_obj tp_abs(TP) {
-    return tp_number(fabs(tp_float(tp)->number.val));
+tp_obj tp_abs(tp_vm *tp) {
+    return tp_number(tp, fabs(tp_float(tp)->number.val));
 }
-tp_obj tp_int(TP) {
-    return tp_number((long)tp_float(tp)->number.val);
+
+tp_obj tp_int(tp_vm *tp) {
+    return tp_number(tp, (long)tp_float(tp)->number.val);
 }
+
 tp_num _roundf(tp_num v) {
     tp_num av = fabs(v); tp_num iv = (long)av;
     av = (av-iv < 0.5?iv:iv+1);
     return (v<0?-av:av);
 }
-tp_obj tp_round(TP) {
-    return tp_number(_roundf(tp_float(tp)->number.val));
+
+tp_obj tp_round(tp_vm *tp) {
+    return tp_number(tp, _roundf(tp_float(tp)->number.val));
 }
 
-tp_obj tp_exists(TP) {
+tp_obj tp_exists(tp_vm *tp) {
     char *s = TP_STR();
     struct stat stbuf;
-    return tp_number(!stat(s,&stbuf));
+    return tp_number(tp, !stat(s,&stbuf));
 }
-tp_obj tp_mtime(TP) {
+tp_obj tp_mtime(tp_vm *tp) {
     char *s = TP_STR();
     struct stat stbuf;
-    if (!stat(s,&stbuf)) { return tp_number(stbuf.st_mtime); }
+    if (!stat(s,&stbuf)) { 
+        return tp_number(tp, stbuf.st_mtime); 
+    }
     tp_raise(None,"tp_mtime(%s)",s);
 }

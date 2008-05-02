@@ -32,16 +32,16 @@ int tp_bool(TP,tp_obj v) {
     }
 }
 
-tp_obj tp_has(TP,tp_obj self, tp_obj k) {
+tp_obj tp_has(tp_vm *tp, tp_obj self, tp_obj k) {
     int type = obj_type(self);
     if (type == TP_DICT) {
         if (_tp_dict_find(tp,self->dict.val,k) != -1) { return True; }
         return False;
     } else if (type == TP_STRING && obj_type(k) == TP_STRING) {
         char *p = strstr(STR(self),STR(k));
-        return tp_number(p != 0);
+        return tp_number(tp, p != 0);
     } else if (type == TP_LIST) {
-        return tp_number(_tp_list_find(tp,self->list.val,k)!=-1);
+        return tp_number(tp, _tp_list_find(tp,self->list.val,k)!=-1);
     }
     tp_raise(None,"tp_has(%s,%s)",STR(self),STR(k));
 }
@@ -65,7 +65,7 @@ tp_obj tp_iter(TP,tp_obj self, tp_obj k) {
     tp_raise(None,"tp_iter(%s,%s)",STR(self),STR(k));
 }
 
-tp_obj tp_get(TP,tp_obj self, tp_obj k) {
+tp_obj tp_get(tp_vm *tp, tp_obj self, tp_obj k) {
     int type = obj_type(self);
     tp_obj r;
     if (type == TP_DICT) {
@@ -123,7 +123,7 @@ tp_obj tp_get(TP,tp_obj self, tp_obj k) {
         int a,b,l;
         tp_obj tmp;
         l = tp_len(tp,self)->number.val;
-        tmp = tp_get(tp,k,tp_number(0));
+        tmp = tp_get(tp, k, tp_number(tp, 0));
         if (obj_type(tmp) == TP_NUMBER) { 
             a = tmp->number.val; 
         } else if (obj_type(tmp) == TP_NONE) { 
@@ -131,7 +131,7 @@ tp_obj tp_get(TP,tp_obj self, tp_obj k) {
         } else { 
             tp_raise(None,"%s is not a number",STR(tmp)); 
         }
-        tmp = tp_get(tp,k,tp_number(1));
+        tmp = tp_get(tp, k, tp_number(tp, 1));
         if (obj_type(tmp) == TP_NUMBER) { 
             b = tmp->number.val; 
         } else if (obj_type(tmp) == TP_NONE) { 
@@ -197,9 +197,9 @@ void tp_set(TP,tp_obj self, tp_obj k, tp_obj v) {
     tp_raise(,"tp_set(%s,%s,%s)",STR(self),STR(k),STR(v));
 }
 
-tp_obj tp_add(TP,tp_obj a, tp_obj b) {
+tp_obj tp_add(tp_vm *tp, tp_obj a, tp_obj b) {
     if (obj_type(a) == TP_NUMBER && obj_type(a) == obj_type(b)) {
-        return tp_number(a->number.val + b->number.val);
+        return tp_number(tp, a->number.val + b->number.val);
     } else if (obj_type(a) == TP_STRING && obj_type(a) == obj_type(b)) {
         int al = a->string.len, bl = b->string.len;
         tp_obj r = tp_string_t(tp,al+bl);
@@ -218,9 +218,9 @@ tp_obj tp_add(TP,tp_obj a, tp_obj b) {
     tp_raise(None,"tp_add(%s,%s)",STR(a),STR(b));
 }
 
-tp_obj tp_mul(TP,tp_obj a, tp_obj b) {
+tp_obj tp_mul(tp_vm *tp, tp_obj a, tp_obj b) {
     if (obj_type(a) == TP_NUMBER && obj_type(a) == obj_type(b)) {
-        return tp_number(a->number.val * b->number.val);
+        return tp_number(tp, a->number.val * b->number.val);
     } else if (obj_type(a) == TP_STRING && obj_type(b) == TP_NUMBER) {
         int al = a->string.len; 
         int n = b->number.val;
@@ -247,12 +247,12 @@ double _tp_len(tp_obj v) {
     return -1.0;
 }
 
-tp_obj tp_len(TP,tp_obj self) {
+tp_obj tp_len(tp_vm *tp, tp_obj self) {
     double len = _tp_len(self);
     if (-1.0 == len) {
         tp_raise(None, "tp_len(%s)", STR(self));
     }
-    return tp_number(len);
+    return tp_number(tp, len);
 }
 
 int tp_cmp(TP,tp_obj a, tp_obj b) {
@@ -289,11 +289,11 @@ int tp_cmp(TP,tp_obj a, tp_obj b) {
 }
 
 #define TP_OP(name,expr) \
-    tp_obj name(TP,tp_obj _a,tp_obj _b) { \
+    tp_obj name(tp_vm *tp, tp_obj _a, tp_obj _b) { \
     if (obj_type(_a) == TP_NUMBER && obj_type(_a) == obj_type(_b)) { \
         tp_num a = _a->number.val; \
         tp_num b = _b->number.val; \
-        return tp_number(expr); \
+        return tp_number(tp, expr); \
     } \
     tp_raise(None,"%s(%s,%s)",#name,STR(_a),STR(_b)); \
 }

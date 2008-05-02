@@ -162,7 +162,7 @@ char *tp_strings[TP_ITOTAL] = {
 #define GA tp_grey(tp,RA)
 #define SR(v) f->cur = cur; return(v);
 
-int tp_step(TP) {
+int tp_step(tp_vm *tp) {
     tp_frame_ *f = &tp->frames[tp->cur];
     tp_obj *regs = f->regs;
     tp_code *cur = f->cur;
@@ -187,11 +187,11 @@ int tp_step(TP) {
         case TP_IMOD:  RA = tp_mod(tp,RB,RC); break;
         case TP_ILSH:  RA = tp_lsh(tp,RB,RC); break;
         case TP_IRSH:  RA = tp_rsh(tp,RB,RC); break;
-        case TP_ICMP: RA = tp_number(tp_cmp(tp,RB,RC)); break;
-        case TP_INE: RA = tp_number(tp_cmp(tp,RB,RC)!=0); break;
-        case TP_IEQ: RA = tp_number(tp_cmp(tp,RB,RC)==0); break;
-        case TP_ILE: RA = tp_number(tp_cmp(tp,RB,RC)<=0); break;
-        case TP_ILT: RA = tp_number(tp_cmp(tp,RB,RC)<0); break;
+        case TP_ICMP: RA = tp_number(tp, tp_cmp(tp,RB,RC)); break;
+        case TP_INE: RA = tp_number(tp, tp_cmp(tp,RB,RC)!=0); break;
+        case TP_IEQ: RA = tp_number(tp, tp_cmp(tp,RB,RC)==0); break;
+        case TP_ILE: RA = tp_number(tp, tp_cmp(tp,RB,RC)<=0); break;
+        case TP_ILT: RA = tp_number(tp, tp_cmp(tp,RB,RC)<0); break;
         case TP_IPASS: break;
         case TP_IIF: if (tp_bool(tp,RA)) { cur += 1; } break;
         case TP_IGET: RA = tp_get(tp,RB,RC); GA; break;
@@ -208,7 +208,7 @@ int tp_step(TP) {
         case TP_IDEL: tp_del(tp,RA,RB); break;
         case TP_IMOVE: RA = RB; break;
         case TP_INUMBER:
-            RA = tp_number(*(tp_num*)(++cur)->string.val);
+            RA = tp_number(tp, *(tp_num*)(++cur)->string.val);
             cur += sizeof(tp_num)/4;
             continue;
         case TP_ISTRING:
@@ -235,7 +235,8 @@ int tp_step(TP) {
         case TP_IRETURN: tp_return(tp,RA); SR(0); break;
         case TP_IRAISE: _tp_raise(tp,RA); SR(0); break;
         case TP_IDEBUG:
-            tp_params_v(tp,3,tp_string("DEBUG:"),tp_number(VA),RA); tp_print(tp);
+            tp_params_v(tp,3, tp_string("DEBUG:"), tp_number(tp, VA), RA); 
+            tp_print(tp);
             break;
         case TP_INONE: RA = None; break;
         case TP_ILINE:

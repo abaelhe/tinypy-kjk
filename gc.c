@@ -5,17 +5,48 @@
 // void tp_gc_deinit(TP) { }
 // void tp_delete(TP,tp_obj v) { }
 
-void tp_grey(TP,tp_obj v) {
-    if (obj_type(v) < TP_STRING || (!v->gci.data) || *v->gci.data) { return; }
-    *v->gci.data = 1;
-    if (obj_type(v) == TP_STRING || obj_type(v) == TP_DATA) {
-        _tp_list_appendx(tp, tp->black,v);
-        return;
-    }
-    _tp_list_appendx(tp,tp->grey,v);
+/* This is tri-color, incremental garbage collector.
+*/
+
+int objallocs = 0;
+int objfrees = 0;
+int objstats[TP_DATA+1] = {0};
+
+tp_obj obj_alloc(objtype type) {
+    tp_obj v = (tp_obj) malloc(sizeof(tp_obj_));
+    memset(v, 0xdd, sizeof(tp_obj_));
+    v->type = type;
+    ++objallocs;
+    ++objstats[type];
+    return v;
 }
 
-void tp_follow(TP,tp_obj v) {
+void obj_free(tp_obj v) {
+    ++objfrees;
+    free(v);
+}
+
+tp_obj tp_number(tp_vm *tp, tp_num v) { 
+    int offof = offsetof(tp_number_, gci);
+    tp_obj val = obj_alloc(TP_NUMBER);
+    val->number.val = v;
+    val->number.info = (char*)val + offof;
+    tp_track(tp, val);
+    return val; 
+}
+
+void tp_grey(tp_vm *tp, tp_obj v) {
+    if (obj_type(v) < TP_NUMBER || (!v->gci.data) || *v->gci.data) { return; }
+    *v->gci.data = 1;
+    if (obj_type(v) == TP_STRING || obj_type(v) == TP_DATA || obj_type(v) == TP_NUMBER) {
+        /* doesn't reference other objects */
+        _tp_list_appendx(tp, tp->black, v);
+        return;
+    }
+    _tp_list_appendx(tp, tp->grey, v);
+}
+
+void tp_follow(tp_vm *tp, tp_obj v) {
     int type = obj_type(v);
     if (type == TP_LIST) {
         int n;
@@ -38,7 +69,7 @@ void tp_follow(TP,tp_obj v) {
     }
 }
 
-void tp_reset(TP) {
+void tp_reset(tp_vm *tp) {
     int n;
     _tp_list *tmp;
     for (n=0; n<tp->black->len; n++) {
@@ -49,7 +80,7 @@ void tp_reset(TP) {
     tp->black = tmp;
 }
 
-void tp_gc_init(TP) {
+void tp_gc_init(tp_vm *tp) {
     tp->white = _tp_list_new();
     tp->strings = _tp_dict_new();
     tp->grey = _tp_list_new();
@@ -57,33 +88,19 @@ void tp_gc_init(TP) {
     tp->steps = 0;
 }
 
-void tp_gc_deinit(TP) {
+void tp_gc_deinit(tp_vm *tp) {
     _tp_list_free(tp->white);
     _tp_dict_free(tp->strings);
     _tp_list_free(tp->grey);
     _tp_list_free(tp->black);
 }
 
-int objallocs = 0;
-int objfrees = 0;
-int objstats[TP_DATA+1] = {0};
-
-tp_obj obj_alloc(objtype type) {
-    tp_obj v = (tp_obj) malloc(sizeof(tp_obj_));
-    v->type = type;
-    ++objallocs;
-    ++objstats[type];
-    return v;
-}
-
-void obj_free(tp_obj v) {
-    ++objfrees;
-    free(v);
-}
-
-void tp_delete(TP, tp_obj v) {
+void tp_delete(tp_vm *tp, tp_obj v) {
     int type = obj_type(v);
-    if (type == TP_LIST) {
+    /* TODO: order by frequency */
+    if (type == TP_NUMBER) {
+        obj_free(v);
+    } else if (type == TP_LIST) {
         _tp_list_free(v->list.val);
         obj_free(v);
         return;
@@ -110,7 +127,7 @@ void tp_delete(TP, tp_obj v) {
     tp_raise(,"tp_delete(%s)",STR(v));
 }
 
-void tp_collect(TP) {
+void tp_collect(tp_vm *tp) {
     int n;
     for (n=0; n<tp->white->len; n++) {
         tp_obj r = tp->white->items[n];
@@ -128,7 +145,7 @@ void tp_collect(TP) {
     tp_reset(tp);
 }
 
-void _tp_gcinc(TP) {
+void _tp_gcinc(tp_vm *tp) {
     tp_obj v;
     if (!tp->grey->len) { 
         return; 
@@ -138,7 +155,7 @@ void _tp_gcinc(TP) {
     _tp_list_appendx(tp,tp->black,v);
 }
 
-void tp_full(TP) {
+void tp_full(tp_vm *tp) {
     while (tp->grey->len) {
         _tp_gcinc(tp);
     }
@@ -146,7 +163,7 @@ void tp_full(TP) {
     tp_follow(tp,tp->root);
 }
 
-void tp_gcinc(TP) {
+void tp_gcinc(tp_vm *tp) {
     tp->steps += 1;
     if (tp->steps < TP_GCMAX || tp->grey->len > 0) {
         _tp_gcinc(tp); _tp_gcinc(tp);
@@ -157,7 +174,7 @@ void tp_gcinc(TP) {
     return;
 }
 
-tp_obj tp_track(TP,tp_obj v) {
+tp_obj tp_track(tp_vm *tp, tp_obj v) {
     if (obj_type(v) == TP_STRING) {
         int i = _tp_dict_find(tp,tp->strings,v);
         if (i != -1) {
@@ -169,7 +186,7 @@ tp_obj tp_track(TP,tp_obj v) {
         _tp_dict_setx(tp, tp->strings,v,True);
     }
     tp_gcinc(tp);
-    tp_grey(tp,v);
+    tp_grey(tp, v);
     return v;
 }
 

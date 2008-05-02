@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <math.h>
 
 #define tp_malloc(x) calloc((x),1)
@@ -27,7 +28,9 @@ typedef double tp_num;
 
 typedef struct tp_number_ {
     objtype type;
+    void *info; /* a hack -> this always points to offset of gci */
     tp_num val;
+    int gci;
 } tp_number_;
 
 typedef struct tp_string_ {
@@ -172,8 +175,8 @@ typedef struct _tp_data {
 } _tp_data;
 
 // NOTE: these are the few out of namespace items for convenience
-#define True tp_number(1)
-#define False tp_number(0)
+#define True tp_number(tp, 1)
+#define False tp_number(tp, 0)
 #define STR(v) ((tp_str(tp,(v)))->string.val)
 extern tp_obj_ NoneObj;
 #define None &NoneObj
@@ -218,12 +221,7 @@ inline static int _tp_max(int a, int b) { return (a>b?a:b); }
 inline static int _tp_sign(tp_num v) { return (v<0?-1:(v>0?1:0)); }
 
 extern tp_obj obj_alloc(objtype type);
-
-inline static tp_obj tp_number(tp_num v) { 
-    tp_obj val = obj_alloc(TP_NUMBER);
-    val->number.val = v;
-    return val; 
-}
+extern tp_obj tp_number(tp_vm *tp, tp_num v);
 
 inline static tp_obj tp_string_n(char *v,int n) {
     tp_obj val = obj_alloc(TP_STRING);

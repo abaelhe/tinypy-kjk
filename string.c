@@ -82,17 +82,19 @@ tp_obj tp_split(TP) {
     return r;
 }
 
-tp_obj tp_find(TP) {
+tp_obj tp_find(tp_vm *tp) {
     tp_obj s = TP_OBJ();
     tp_obj v = TP_OBJ();
-    return tp_number(_tp_str_index(s,v));
+    return tp_number(tp, _tp_str_index(s,v));
 }
 
-tp_obj tp_str_index(TP) {
+tp_obj tp_str_index(tp_vm *tp) {
     tp_obj s = TP_OBJ();
     tp_obj v = TP_OBJ();
     int n = _tp_str_index(s,v);
-    if (n >= 0) { return tp_number(n); }
+    if (n >= 0) { 
+        return tp_number(tp, n); 
+    }
     tp_raise(None,"tp_str_index(%s,%s)",s,v);
 }
 
@@ -105,9 +107,10 @@ tp_obj tp_chr(TP) {
     int v = TP_NUM();
     return tp_string_n(tp->chars[(unsigned char)v],1);
 }
-tp_obj tp_ord(TP) {
+
+tp_obj tp_ord(tp_vm *tp) {
     char *s = TP_STR();
-    return tp_number(s[0]);
+    return tp_number(tp, s[0]);
 }
 
 tp_obj tp_strip(TP) {
