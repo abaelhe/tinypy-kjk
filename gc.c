@@ -66,11 +66,13 @@ void tp_gc_deinit(TP) {
 
 int objallocs = 0;
 int objfrees = 0;
+int objstats[TP_DATA+1] = {0};
 
 tp_obj obj_alloc(objtype type) {
     tp_obj v = (tp_obj) malloc(sizeof(tp_obj_));
     v->type = type;
     ++objallocs;
+    ++objstats[type];
     return v;
 }
 
