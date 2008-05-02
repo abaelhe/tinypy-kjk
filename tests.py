@@ -190,12 +190,14 @@ def t_render(ss,ex,exact=True):
     #print(ss,ex,res)
     if exact:
         if not res == ex:
+            print(VM + fname + " > tmp.txt")
             print "ss:  '" + str(ss) + "'"
             print "ex:  '" + str(ex) + "'"
             print "res: '" + str(res) + "'"
         assert(res == ex)
     else:
         if not ex in res:
+            print(VM + fname + " > tmp.txt")
             print "ss:  '" + str(ss) + "'"
             print "ex:  '" + str(ex) + "'"
             print "res: '" + str(res) + "'"
