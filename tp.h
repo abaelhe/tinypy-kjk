@@ -26,43 +26,43 @@ typedef enum objtype {
 typedef double tp_num;
 
 typedef struct tp_number_ {
-    int type;
+    objtype type;
     tp_num val;
 } tp_number_;
 
 typedef struct tp_string_ {
-    int type;
+    objtype type;
     struct _tp_string *info;
     char *val;
     int len;
 } tp_string_;
 
 typedef struct tp_list_ {
-    int type;
+    objtype type;
     struct _tp_list *val;
 } tp_list_;
 
 typedef struct tp_dict_ {
-    int type;
+    objtype type;
     struct _tp_dict *val;
 } tp_dict_;
 
 typedef struct tp_fnc_ {
-    int type;
+    objtype type;
     struct _tp_fnc *val;
     int ftype;
     void *fval;
 } tp_fnc_;
 
 typedef struct tp_data_ {
-    int type;
+    objtype type;
     struct _tp_data *info;
     void *val;
     struct tp_meta *meta;
 } tp_data_;
 
 typedef union tp_obj_ {
-    int type;
+    objtype type;
     tp_number_ number;
     struct { int type; int *data; } gci;
     tp_string_ string;

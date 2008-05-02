@@ -27,8 +27,9 @@ int tp_bool(TP,tp_obj v) {
         case TP_STRING: return v->string.len != 0;
         case TP_LIST: return v->list.val->len != 0;
         case TP_DICT: return v->dict.val->len != 0;
+        default: /* TP_FNC, TP_DATA */
+            return 1;
     }
-    return 1;
 }
 
 tp_obj tp_has(TP,tp_obj self, tp_obj k) {
