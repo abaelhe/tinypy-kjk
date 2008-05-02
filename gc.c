@@ -10,27 +10,30 @@
 
 int objallocs = 0;
 int objfrees = 0;
-int objstats[TP_DATA+1] = {0};
+int objallocstats[TP_DATA+1] = {0};
+int objfreestats[TP_DATA+1] = {0};
 
 tp_obj obj_alloc(objtype type) {
     tp_obj v = (tp_obj) malloc(sizeof(tp_obj_));
     memset(v, 0xdd, sizeof(tp_obj_));
     v->type = type;
     ++objallocs;
-    ++objstats[type];
+    ++objallocstats[type];
     return v;
 }
 
 void obj_free(tp_obj v) {
     ++objfrees;
+    int type = obj_type(v);
+    ++objfreestats[type];
     free(v);
 }
 
 tp_obj tp_number(tp_vm *tp, tp_num v) { 
-    int offof = offsetof(tp_number_, gci);
     tp_obj val = obj_alloc(TP_NUMBER);
     val->number.val = v;
-    val->number.info = (char*)val + offof;
+    val->number.gci = 0;
+    val->number.info = (char*)val + offsetof(tp_number_, gci); /* hack for uniform gc */
     tp_track(tp, val);
     return val; 
 }
@@ -97,19 +100,24 @@ void tp_gc_deinit(tp_vm *tp) {
 
 void tp_delete(tp_vm *tp, tp_obj v) {
     int type = obj_type(v);
-    /* TODO: order by frequency */
-    if (type == TP_NUMBER) {
+    /* checks are ordered by frequency of allocation */
+    if (type == TP_STRING) {
+        tp_free(v->string.info);
         obj_free(v);
+        return;
+    } else if (type == TP_NUMBER) {
+        obj_free(v);
+        return;
     } else if (type == TP_LIST) {
         _tp_list_free(v->list.val);
         obj_free(v);
         return;
-    } else if (type == TP_DICT) {
-        _tp_dict_free(v->dict.val);
+    } else if (type == TP_FNC) {
+        tp_free(v->fnc.val);
         obj_free(v);
         return;
-    } else if (type == TP_STRING) {
-        tp_free(v->string.info);
+    } else if (type == TP_DICT) {
+        _tp_dict_free(v->dict.val);
         obj_free(v);
         return;
     } else if (type == TP_DATA) {
@@ -117,10 +125,6 @@ void tp_delete(tp_vm *tp, tp_obj v) {
             v->data.meta->free(tp,v);
         }
         tp_free(v->data.info);
-        obj_free(v);
-        return;
-    } else if (type == TP_FNC) {
-        tp_free(v->fnc.val);
         obj_free(v);
         return;
     }
@@ -150,8 +154,8 @@ void _tp_gcinc(tp_vm *tp) {
     if (!tp->grey->len) { 
         return; 
     }
-    v = _tp_list_pop(tp,tp->grey,tp->grey->len-1,"_tp_gcinc");
-    tp_follow(tp,v);
+    v = _tp_list_pop(tp, tp->grey, tp->grey->len-1, "_tp_gcinc");
+    tp_follow(tp, v);
     _tp_list_appendx(tp,tp->black,v);
 }
 
@@ -160,15 +164,18 @@ void tp_full(tp_vm *tp) {
         _tp_gcinc(tp);
     }
     tp_collect(tp);
-    tp_follow(tp,tp->root);
+    tp_follow(tp, tp->root);
 }
 
 void tp_gcinc(tp_vm *tp) {
     tp->steps += 1;
     if (tp->steps < TP_GCMAX || tp->grey->len > 0) {
-        _tp_gcinc(tp); _tp_gcinc(tp);
+        _tp_gcinc(tp); 
+        _tp_gcinc(tp);
     }
-    if (tp->steps < TP_GCMAX || tp->grey->len > 0) { return; }
+    if (tp->steps < TP_GCMAX || tp->grey->len > 0) { 
+        return; 
+    }
     tp->steps = 0;
     tp_full(tp);
     return;

@@ -174,7 +174,7 @@ tp_obj tp_merge(TP) {
     return None;
 }
 
-tp_obj tp_dict(TP) {
+tp_obj tp_dict(tp_vm *tp) {
     tp_obj r = obj_alloc(TP_DICT);
     r->dict.val = _tp_dict_new();
     return tp ? tp_track(tp,r) : r;
