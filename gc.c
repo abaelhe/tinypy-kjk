@@ -38,6 +38,18 @@ tp_obj tp_number(tp_vm *tp, tp_num v) {
     return val; 
 }
 
+tp_obj tp_string_n(char *v,int n) {
+    tp_obj val = obj_alloc(TP_STRING);
+    val->string.info = (struct _tp_string*) ((char*)val + offsetof(tp_string_, gci)); /* hack for uniform gc */
+    val->string.val = v;
+    val->string.len = n;
+    return val;
+}
+
+tp_obj tp_string(char *v) {
+    return tp_string_n(v, strlen(v));
+}
+
 void tp_grey(tp_vm *tp, tp_obj v) {
     if (obj_type(v) < TP_NUMBER || (!v->gci.data) || *v->gci.data) { return; }
     *v->gci.data = 1;
@@ -102,7 +114,9 @@ void tp_delete(tp_vm *tp, tp_obj v) {
     int type = obj_type(v);
     /* checks are ordered by frequency of allocation */
     if (type == TP_STRING) {
-        tp_free(v->string.info);
+        if (v->string.info && !((char*)v->string.info < (char*)v + sizeof(tp_obj_))) {
+            tp_free(v->string.info);
+        }
         obj_free(v);
         return;
     } else if (type == TP_NUMBER) {
@@ -141,9 +155,9 @@ void tp_collect(tp_vm *tp) {
         if (obj_type(r) == TP_STRING) {
             //this can't be moved into tp_delete, because tp_delete is
             // also used by tp_track_s to delete redundant strings
-            _tp_dict_del(tp,tp->strings,r,"tp_collect");
+            _tp_dict_del(tp, tp->strings, r, "tp_collect");
         }
-        tp_delete(tp,r);
+        tp_delete(tp, r);
     }
     tp->white->len = 0;
     tp_reset(tp);

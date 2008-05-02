@@ -38,6 +38,7 @@ typedef struct tp_string_ {
     struct _tp_string *info;
     char *val;
     int len;
+    int gci;
 } tp_string_;
 
 typedef struct tp_list_ {
@@ -222,17 +223,7 @@ inline static int _tp_sign(tp_num v) { return (v<0?-1:(v>0?1:0)); }
 
 extern tp_obj obj_alloc(objtype type);
 extern tp_obj tp_number(tp_vm *tp, tp_num v);
-
-inline static tp_obj tp_string_n(char *v,int n) {
-    tp_obj val = obj_alloc(TP_STRING);
-    val->string.info = 0;
-    val->string.val = v;
-    val->string.len = n;
-    return val;
-}
-
-inline static tp_obj tp_string(char *v) {
-    return tp_string_n(v, strlen(v));
-}
+extern tp_obj tp_string_n(char *v,int n);
+extern tp_obj tp_string(char *v);
 
 #endif

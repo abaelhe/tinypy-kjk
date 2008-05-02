@@ -79,20 +79,29 @@ void _tp_dict_tp_realloc(TP,_tp_dict *self,int len) {
     tp_free(items);
 }
 
-int _tp_dict_hash_find(TP,_tp_dict *self, int hash, tp_obj k) {
-    int i,idx = hash&self->mask;
+int _tp_dict_hash_find(tp_vm *tp, _tp_dict *self, int hash, tp_obj k) {
+    int i,idx = hash & self->mask;
     for (i=idx; i<idx+self->alloc; i++) {
         int n = i&self->mask;
-        if (self->items[n].used == 0) { break; }
-        if (self->items[n].used < 0) { continue; }
-        if (self->items[n].hash != hash) { continue; }
-        if (tp_cmp(tp,self->items[n].key,k) != 0) { continue; }
+        if (self->items[n].used == 0) { 
+            break; 
+        }
+        if (self->items[n].used < 0) { 
+            continue; 
+        }
+        if (self->items[n].hash != hash) { 
+            continue; 
+        }
+        if (tp_cmp(tp, self->items[n].key, k) != 0) { 
+            continue; 
+        }
         return n;
     }
     return -1;
 }
-int _tp_dict_find(TP,_tp_dict *self,tp_obj k) {
-    return _tp_dict_hash_find(tp,self,tp_hash(tp,k),k);
+
+int _tp_dict_find(tp_vm *tp, _tp_dict *self, tp_obj k) {
+    return _tp_dict_hash_find(tp, self, tp_hash(tp,k), k);
 }
 
 void _tp_dict_setx(TP,_tp_dict *self,tp_obj k, tp_obj v) {
@@ -122,8 +131,8 @@ tp_obj _tp_dict_get(TP,_tp_dict *self,tp_obj k, char *error) {
     return self->items[n].val;
 }
 
-void _tp_dict_del(TP,_tp_dict *self,tp_obj k, char *error) {
-    int n = _tp_dict_find(tp,self,k);
+void _tp_dict_del(tp_vm *tp, _tp_dict *self, tp_obj k, char *error) {
+    int n = _tp_dict_find(tp, self, k);
     if (n < 0) { 
 #if 0
         /* TODO figure out this happens */
@@ -140,6 +149,7 @@ _tp_dict *_tp_dict_new(void) {
     _tp_dict *self = tp_malloc(sizeof(_tp_dict));
     return self;
 }
+
 tp_obj _tp_dict_copy(TP,tp_obj rr) {
     tp_obj obj = obj_alloc(TP_DICT);
     _tp_dict *o = rr->dict.val;

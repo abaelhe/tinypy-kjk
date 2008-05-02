@@ -101,7 +101,9 @@ tp_obj tp_get(tp_vm *tp, tp_obj self, tp_obj k) {
             int l = self->string.len;
             int n = k->number.val;
             n = (n<0?l+n:n);
-            if (n >= 0 && n < l) { return tp_string_n(tp->chars[(unsigned char)self->string.val[n]],1); }
+            if (n >= 0 && n < l) { 
+                return tp_string_n(tp->chars[(unsigned char)self->string.val[n]],1); 
+            }
         } else if (obj_type(k) == TP_STRING) {
             if (strcmp("join",STR(k)) == 0) {
                 return tp_method(tp,self,tp_join);
@@ -255,21 +257,26 @@ tp_obj tp_len(tp_vm *tp, tp_obj self) {
     return tp_number(tp, len);
 }
 
-int tp_cmp(TP,tp_obj a, tp_obj b) {
-    if (obj_type(a) != obj_type(b)) { return obj_type(a)-obj_type(b); }
-    switch(obj_type(a)) {
+int tp_cmp(tp_vm *tp, tp_obj a, tp_obj b) {
+    if (obj_type(a) != obj_type(b)) {
+        return obj_type(a) - obj_type(b);
+    }
+
+    switch (obj_type(a)) {
         case TP_NONE: return 0;
         case TP_NUMBER: return _tp_sign(a->number.val - b->number.val);
         case TP_STRING: {
-            int v = memcmp(a->string.val, b->string.val,_tp_min(a->string.len,b->string.len));
+            int minlen = _tp_min(a->string.len, b->string.len);
+            int v = memcmp(a->string.val, b->string.val, minlen);
             if (v == 0) { 
                 v = a->string.len - b->string.len; 
             }
             return v;
         }
         case TP_LIST: {
-            int n,v; 
-            for (n=0; n<_tp_min(a->list.val->len,b->list.val->len); n++) {
+            int n,v;
+            int minlen = _tp_min(a->list.val->len,b->list.val->len);
+            for (n=0; n < minlen; n++) {
                 tp_obj aa = a->list.val->items[n]; 
                 tp_obj bb = b->list.val->items[n];
                 if (obj_type(aa) == TP_LIST && obj_type(bb) == TP_LIST) { 
@@ -277,7 +284,9 @@ int tp_cmp(TP,tp_obj a, tp_obj b) {
                 } else { 
                     v = tp_cmp(tp,aa,bb); 
                 }
-                if (v) { return v; } 
+                if (v) { 
+                    return v; 
+                } 
             }
             return a->list.val->len - b->list.val->len;
         }
