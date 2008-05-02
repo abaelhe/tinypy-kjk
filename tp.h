@@ -217,11 +217,7 @@ inline static int _tp_min(int a, int b) { return (a<b?a:b); }
 inline static int _tp_max(int a, int b) { return (a>b?a:b); }
 inline static int _tp_sign(tp_num v) { return (v<0?-1:(v>0?1:0)); }
 
-inline static tp_obj obj_alloc(int type) {
-    tp_obj v = (tp_obj) malloc(sizeof(tp_obj_));
-    v->type = type;
-    return v;
-}
+extern tp_obj obj_alloc(objtype type);
 
 inline static tp_obj tp_number(tp_num v) { 
     tp_obj val = obj_alloc(TP_NUMBER);

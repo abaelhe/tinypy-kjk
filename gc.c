@@ -64,30 +64,45 @@ void tp_gc_deinit(TP) {
     _tp_list_free(tp->black);
 }
 
+int objallocs = 0;
+int objfrees = 0;
+
+tp_obj obj_alloc(objtype type) {
+    tp_obj v = (tp_obj) malloc(sizeof(tp_obj_));
+    v->type = type;
+    ++objallocs;
+    return v;
+}
+
+void obj_free(tp_obj v) {
+    ++objfrees;
+    free(v);
+}
+
 void tp_delete(TP, tp_obj v) {
     int type = obj_type(v);
     if (type == TP_LIST) {
         _tp_list_free(v->list.val);
-        free(v);
+        obj_free(v);
         return;
     } else if (type == TP_DICT) {
         _tp_dict_free(v->dict.val);
-        free(v);
+        obj_free(v);
         return;
     } else if (type == TP_STRING) {
         tp_free(v->string.info);
-        free(v);
+        obj_free(v);
         return;
     } else if (type == TP_DATA) {
         if (v->data.meta && v->data.meta->free) {
             v->data.meta->free(tp,v);
         }
         tp_free(v->data.info);
-        free(v);
+        obj_free(v);
         return;
     } else if (type == TP_FNC) {
         tp_free(v->fnc.val);
-        free(v);
+        obj_free(v);
         return;
     }
     tp_raise(,"tp_delete(%s)",STR(v));
