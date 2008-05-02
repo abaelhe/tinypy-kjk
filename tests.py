@@ -184,7 +184,7 @@ def t_render(ss,ex,exact=True):
         f = save(fname,r)
         n += 1
     system_rm('tmp.txt')
-    print(VM + fname + " > tmp.txt")
+    #print(VM + fname + " > tmp.txt")
     system(VM+fname+' > tmp.txt')
     res = load(TMP).strip()
     #print(ss,ex,res)
@@ -194,7 +194,12 @@ def t_render(ss,ex,exact=True):
             print "ex:  '" + str(ex) + "'"
             print "res: '" + str(res) + "'"
         assert(res == ex)
-    else: assert(ex in res)
+    else:
+        if not ex in res:
+            print "ss:  '" + str(ss) + "'"
+            print "ex:  '" + str(ex) + "'"
+            print "res: '" + str(res) + "'"
+        assert(ex in res)
 
 def test_range():
     t_render("""print(str(range(4))[:5])""","<list")
