@@ -136,7 +136,7 @@ void _tp_dict_del(tp_vm *tp, _tp_dict *self, tp_obj k, char *error) {
     if (n < 0) { 
 #if 0
         /* TODO figure out this happens */
-        tp_raise(,"%s: KeyError: %s\n",error,STR(k)); 
+        tp_raise(, "%s: KeyError: '%s'\n", error, STR(k)); 
 #else
         return;
 #endif
@@ -150,7 +150,7 @@ _tp_dict *_tp_dict_new(void) {
     return self;
 }
 
-tp_obj _tp_dict_copy(TP,tp_obj rr) {
+tp_obj _tp_dict_copy(tp_vm *tp, tp_obj rr) {
     tp_obj obj = obj_alloc(TP_DICT);
     _tp_dict *o = rr->dict.val;
     _tp_dict *r = _tp_dict_new(); 

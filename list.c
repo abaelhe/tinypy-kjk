@@ -79,13 +79,15 @@ _tp_list *_tp_list_new(void) {
     return tp_malloc(sizeof(_tp_list));
 }
 
-tp_obj _tp_list_copy(TP, tp_obj rr) {
+/* TODO: looks like every call to _tp_list_copy leaks a TP_LIST object */
+tp_obj _tp_list_copy(tp_vm *tp, tp_obj rr) {
     tp_obj val = obj_alloc(TP_LIST);
     _tp_list *o = rr->list.val;
-    _tp_list *r = _tp_list_new(); 
+    int toalloc = sizeof(tp_obj) * o->alloc;
+    _tp_list *r = _tp_list_new();
     *r = *o;
-    r->items = tp_malloc(sizeof(tp_obj)*o->alloc);
-    memcpy(r->items,o->items,sizeof(tp_obj)*o->alloc);
+    r->items = tp_malloc(toalloc);
+    memcpy(r->items, o->items, toalloc);
     val->list.val = r;
     return tp_track(tp,val);
 }
@@ -127,11 +129,12 @@ tp_obj tp_list(tp_vm *tp) {
     return tp ? tp_track(tp,r) : r;
 }
 
-tp_obj tp_list_n(TP,int n,tp_obj *argv) {
+tp_obj tp_list_n(tp_vm *tp, int n, tp_obj *argv) {
     int i; 
-    tp_obj r = tp_list(tp); _tp_list_realloc(r->list.val,n);
+    tp_obj r = tp_list(tp); 
+    _tp_list_realloc(r->list.val,n);
     for (i=0; i<n; i++) {
-        _tp_list_append(tp,r->list.val,argv[i]); 
+        _tp_list_append(tp, r->list.val, argv[i]); 
     }
     return r;
 }

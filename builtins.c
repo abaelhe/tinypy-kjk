@@ -34,15 +34,15 @@ tp_obj tp_max(TP) {
     return r;
 }
 
-tp_obj tp_copy(TP) {
+tp_obj tp_copy(tp_vm *tp) {
     tp_obj r = TP_OBJ();
     int type = obj_type(r);
     if (type == TP_LIST) {
-        return _tp_list_copy(tp,r);
+        return _tp_list_copy(tp, r);
     } else if (type == TP_DICT) {
-        return _tp_dict_copy(tp,r);
+        return _tp_dict_copy(tp, r);
     }
-    tp_raise(None,"tp_copy(%s)",STR(r));
+    tp_raise(None, "tp_copy(%s)", STR(r));
 }
 
 

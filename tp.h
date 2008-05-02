@@ -201,7 +201,7 @@ void tp_grey(TP,tp_obj);
 }
 #define obj_type(o) o->type
 #define __params (tp->params)
-#define TP_OBJ() (tp_get(tp,__params,None))
+#define TP_OBJ() (tp_get(tp, tp->params, None))
 inline static tp_obj tp_type(TP,int t,tp_obj v) {
     if (obj_type(v) != t) { 
         tp_raise(None, "_tp_type(%d,%s)", t, STR(v)); 

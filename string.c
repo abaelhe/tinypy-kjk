@@ -4,13 +4,7 @@ tp_obj tp_string_n(tp_vm *tp, char *v, int n) {
     val->string.val = v;
     val->string.len = n;
     val->string.gci = 0;
-#if 0
-    /* TODO: I get assert() in tp_pop when it tries to pop an item from empty
-       list when this codepath is enabled */
     return tp_track(tp, val);
-#else
-    return val;
-#endif
 }
 
 tp_obj tp_string(tp_vm *tp, char *v) {
@@ -228,9 +222,11 @@ tp_obj tp_replace(tp_vm *tp) {
     tp_obj k = TP_OBJ();
     tp_obj v = TP_OBJ();
     int strlength;
+    /* TODO: optimize by not copying strresult */
     char *strresult = str_replace(s->string.val, s->string.len, k->string.val, k->string.len, v->string.val, v->string.len, &strlength);
-    /* TODO: this is probably wrong, need to copy strresult */
-    tp_obj result = tp_string_n(tp, strresult, strlength);
+    tp_obj result = tp_string_t(tp, strlength);
+    memcpy(result->string.val, strresult, strlength);
+    free(strresult);
     return tp_track(tp, result);
 }
 
