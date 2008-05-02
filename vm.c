@@ -82,8 +82,6 @@ void tp_print_stack(TP) {
     printf("\nException:\n%s\n",STR(tp->ex));
 }
 
-
-
 void tp_handle(TP) {
     int i;
     for (i=tp->cur; i>=0; i--) {
@@ -198,7 +196,7 @@ int tp_step(TP) {
         case TP_IIF: if (tp_bool(tp,RA)) { cur += 1; } break;
         case TP_IGET: RA = tp_get(tp,RB,RC); GA; break;
         case TP_IITER:
-            if (RC->number.val < tp_len(tp,RB)->number.val) {
+            if (RC->number.val < _tp_len(RB)) {
                 RA = tp_iter(tp,RB,RC); GA;
                 RC->number.val += 1;
                 cur += 1;
@@ -262,7 +260,6 @@ void tp_run(TP,int cur) {
     tp->cur = cur-1; tp->jmp = 0;
 }
 
-
 tp_obj tp_call(TP, char *mod, char *fnc, tp_obj params) {
     tp_obj tmp;
     tp_obj r = None;
@@ -299,8 +296,6 @@ tp_obj tp_import(TP,char *fname, char *name, void *codes) {
     
     return g;
 }
-
-
 
 tp_obj tp_exec_(TP) {
     tp_obj code = TP_OBJ();
@@ -340,14 +335,12 @@ void tp_builtins(TP) {
     }
 }
 
-
 void tp_args(TP,int argc, char *argv[]) {
     tp_obj self = tp_list(tp);
     int i;
     for (i=1; i<argc; i++) { _tp_list_append(tp,self->list.val,tp_string(argv[i])); }
     tp_set(tp,tp->builtins,tp_string("ARGV"),self);
 }
-
 
 tp_obj tp_main(TP,char *fname, void *code) {
     return tp_import(tp,fname,"__main__",code);
@@ -375,6 +368,4 @@ tp_vm *tp_init(int argc, char *argv[]) {
     tp_compiler(tp);
     return tp;
 }
-    
 
-//

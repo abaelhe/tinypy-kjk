@@ -235,17 +235,24 @@ tp_obj tp_mul(TP,tp_obj a, tp_obj b) {
     tp_raise(None,"tp_mul(%s,%s)",STR(a),STR(b));
 }
 
+double _tp_len(tp_obj v) {
+    int type = obj_type(v);
+    if (type == TP_STRING) {
+        return v->string.len;
+    } else if (type == TP_DICT) {
+        return v->dict.val->len;
+    } else if (type == TP_LIST) {
+        return v->list.val->len;
+    }
+    return -1.0;
+}
 
 tp_obj tp_len(TP,tp_obj self) {
-    int type = obj_type(self);
-    if (type == TP_STRING) {
-        return tp_number(self->string.len);
-    } else if (type == TP_DICT) {
-        return tp_number(self->dict.val->len);
-    } else if (type == TP_LIST) {
-        return tp_number(self->list.val->len);
+    double len = _tp_len(self);
+    if (-1.0 == len) {
+        tp_raise(None, "tp_len(%s)", STR(self));
     }
-    tp_raise(None,"tp_len(%s)",STR(self));
+    return tp_number(len);
 }
 
 int tp_cmp(TP,tp_obj a, tp_obj b) {
