@@ -66,21 +66,21 @@ tp_obj get_mouse_pos(tp_vm *tp) {
     b = SDL_GetMouseState(&x,&y);
     tp_obj r;
     r = tp_dict_n(tp,3,(tp_obj[]){
-        tp_string("x"),tp_number(tp, x),
-        tp_string("y"),tp_number(tp, y),
-        tp_string("b"),tp_number(tp, b)
+        tp_string(tp, "x"),tp_number(tp, x),
+        tp_string(tp, "y"),tp_number(tp, y),
+        tp_string(tp, "b"),tp_number(tp, b)
         });
     return r;
 }
 
-void sdl_init(TP) {
+void sdl_init(tp_vm *tp) {
     tp_obj context = tp->builtins;
-    tp_set(tp,context,tp_string("set_mode"),tp_fnc(tp,set_mode));
-    tp_set(tp,context,tp_string("set_pixel"),tp_fnc(tp,set_pixel));
-    tp_set(tp,context,tp_string("update"),tp_fnc(tp,update));
-    tp_set(tp,context,tp_string("get_ticks"),tp_fnc(tp,get_ticks));
-    tp_set(tp,context,tp_string("gfx_get_event"),tp_fnc(tp,gfx_get_event));
-    tp_set(tp,context,tp_string("get_mouse_pos"),tp_fnc(tp,get_mouse_pos));
+    tp_set(tp,context,tp_string(tp, "set_mode"),tp_fnc(tp,set_mode));
+    tp_set(tp,context,tp_string(tp, "set_pixel"),tp_fnc(tp,set_pixel));
+    tp_set(tp,context,tp_string(tp, "update"),tp_fnc(tp,update));
+    tp_set(tp,context,tp_string(tp, "get_ticks"),tp_fnc(tp,get_ticks));
+    tp_set(tp,context,tp_string(tp, "gfx_get_event"),tp_fnc(tp,gfx_get_event));
+    tp_set(tp,context,tp_string(tp, "get_mouse_pos"),tp_fnc(tp,get_mouse_pos));
 }
 
 int main(int argc, char *argv[]) {

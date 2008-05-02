@@ -34,26 +34,14 @@ tp_obj tp_number(tp_vm *tp, tp_num v) {
     val->number.val = v;
     val->number.gci = 0;
     val->number.info = (char*)val + offsetof(tp_number_, gci); /* hack for uniform gc */
-    tp_track(tp, val);
-    return val; 
-}
-
-tp_obj tp_string_n(char *v,int n) {
-    tp_obj val = obj_alloc(TP_STRING);
-    val->string.info = (struct _tp_string*) ((char*)val + offsetof(tp_string_, gci)); /* hack for uniform gc */
-    val->string.val = v;
-    val->string.len = n;
-    return val;
-}
-
-tp_obj tp_string(char *v) {
-    return tp_string_n(v, strlen(v));
+    return tp_track(tp, val);
 }
 
 void tp_grey(tp_vm *tp, tp_obj v) {
-    if (obj_type(v) < TP_NUMBER || (!v->gci.data) || *v->gci.data) { return; }
+    int type = obj_type(v);
+    if (type < TP_NUMBER || (!v->gci.data) || *v->gci.data) { return; }
     *v->gci.data = 1;
-    if (obj_type(v) == TP_STRING || obj_type(v) == TP_DATA || obj_type(v) == TP_NUMBER) {
+    if (type == TP_STRING || type == TP_DATA || type == TP_NUMBER) {
         /* doesn't reference other objects */
         _tp_list_appendx(tp, tp->black, v);
         return;
@@ -194,17 +182,17 @@ void tp_gcinc(tp_vm *tp) {
     tp_full(tp);
     return;
 }
-
+    
 tp_obj tp_track(tp_vm *tp, tp_obj v) {
     if (obj_type(v) == TP_STRING) {
-        int i = _tp_dict_find(tp,tp->strings,v);
+        int i = _tp_dict_find(tp, tp->strings, v);
         if (i != -1) {
-            tp_delete(tp,v);
+            tp_delete(tp, v);
             v = tp->strings->items[i].key;
             tp_grey(tp,v);
             return v;
         }
-        _tp_dict_setx(tp, tp->strings,v,True);
+        _tp_dict_setx(tp, tp->strings, v, True);
     }
     tp_gcinc(tp);
     tp_grey(tp, v);

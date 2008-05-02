@@ -145,10 +145,10 @@ def build_tp():
 def bootstrap():
     mods = MODS[:]; mods.append('tests')
     do_cmd("gcc -Wall -g vmmain.c $FLAGS -lm -o vmdbg")
-    do_cmd('python tests.py $SYS')
+    #do_cmd('python tests.py $SYS')
     for mod in mods: do_cmd('python py2bc.py %s.py %s.tpc'%(mod,mod))
-    do_cmd(VM+'tests.tpc $SYS')
-    for mod in mods: do_cmd(VM+'py2bc.tpc %s.py %s.tpc'%(mod,mod))
+    #do_cmd(VM+'tests.tpc $SYS')
+    #for mod in mods: do_cmd(VM+'py2bc.tpc %s.py %s.tpc'%(mod,mod))
     build_bc()
     do_cmd("gcc -Wall -g tpmain.c $FLAGS -lm -o tinypydbg")
     do_cmd(TINYPY+'tests.py $SYS')

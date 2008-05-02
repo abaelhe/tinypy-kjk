@@ -1,5 +1,5 @@
 
-tp_obj tp_str(TP,tp_obj self) {
+tp_obj tp_str(tp_vm *tp, tp_obj self) {
     int type = obj_type(self);
     if (type == TP_STRING) { return self; }
     if (type == TP_NUMBER) {
@@ -11,13 +11,13 @@ tp_obj tp_str(TP,tp_obj self) {
     } else if(type == TP_LIST) {
         return tp_printf(tp,"<list 0x%x>",self->list.val);
     } else if (type == TP_NONE) {
-        return tp_string("None");
+        return tp_string(tp, "None");
     } else if (type == TP_DATA) {
         return tp_printf(tp,"<data 0x%x>",self->data.val);
     } else if (type == TP_FNC) {
         return tp_printf(tp,"<fnc 0x%x>",self->fnc.val);
     }
-    return tp_string("<?>");
+    return tp_string(tp, "<?>");
 }
 
 int tp_bool(TP,tp_obj v) {
@@ -102,7 +102,7 @@ tp_obj tp_get(tp_vm *tp, tp_obj self, tp_obj k) {
             int n = k->number.val;
             n = (n<0?l+n:n);
             if (n >= 0 && n < l) { 
-                return tp_string_n(tp->chars[(unsigned char)self->string.val[n]],1); 
+                return tp_string_n(tp, tp->chars[(unsigned char)self->string.val[n]],1); 
             }
         } else if (obj_type(k) == TP_STRING) {
             if (strcmp("join",STR(k)) == 0) {

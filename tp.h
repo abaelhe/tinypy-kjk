@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <math.h>
+#include <assert.h>
 
 #define tp_malloc(x) calloc((x),1)
 #define tp_realloc(x,y) realloc(x,y)
@@ -158,6 +159,7 @@ typedef struct tp_vm {
     _tp_list *black;
     _tp_dict *strings;
     int steps;
+    int instructions;
 } tp_vm;
 
 #define TP tp_vm *tp
@@ -223,7 +225,7 @@ inline static int _tp_sign(tp_num v) { return (v<0?-1:(v>0?1:0)); }
 
 extern tp_obj obj_alloc(objtype type);
 extern tp_obj tp_number(tp_vm *tp, tp_num v);
-extern tp_obj tp_string_n(char *v,int n);
-extern tp_obj tp_string(char *v);
+extern tp_obj tp_string_n(tp_vm *tp, char *v,int n);
+extern tp_obj tp_string(tp_vm *tp, char *v);
 
 #endif

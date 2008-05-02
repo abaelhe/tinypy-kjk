@@ -1,7 +1,8 @@
 
 tp_vm *_tp_init(void) {
     int i;
-    tp_vm *tp = tp_malloc(sizeof(tp_vm)); 
+    tp_vm *tp = tp_malloc(sizeof(tp_vm));
+    tp->instructions = 0;
     tp->cur = 0;
     tp->jmp = 0;
     tp->ex = None;
@@ -10,7 +11,7 @@ tp_vm *_tp_init(void) {
     tp_gc_init(tp);
     tp->_regs = tp_list(tp);
     for (i=0; i<TP_REGS; i++) { 
-        tp_set(tp, tp->_regs, None, None); 
+        tp_set(tp, tp->_regs, None, None);
     }
     tp->builtins = tp_dict(tp);
     tp->modules = tp_dict(tp);
@@ -20,9 +21,9 @@ tp_vm *_tp_init(void) {
     tp_set(tp,tp->root,None,tp->modules);
     tp_set(tp,tp->root,None,tp->_regs);
     tp_set(tp,tp->root,None,tp->_params);
-    tp_set(tp,tp->builtins,tp_string("MODULES"),tp->modules);
-    tp_set(tp,tp->modules,tp_string("BUILTINS"),tp->builtins);
-    tp_set(tp,tp->builtins,tp_string("BUILTINS"),tp->builtins);
+    tp_set(tp,tp->builtins,tp_string(tp, "MODULES"),tp->modules);
+    tp_set(tp,tp->modules,tp_string(tp, "BUILTINS"),tp->builtins);
+    tp_set(tp,tp->builtins,tp_string(tp, "BUILTINS"),tp->builtins);
     tp->regs = tp->_regs->list.val->items;
     tp_full(tp);
     return tp;
@@ -40,7 +41,7 @@ void tp_deinit(TP) {
 }
 
 // tp_frame_ 
-void tp_frame(TP,tp_obj globals,tp_code *codes,tp_obj *ret_dest) {
+void tp_frame(tp_vm *tp, tp_obj globals, tp_code *codes, tp_obj *ret_dest) {
     tp_frame_ f;
     f.globals = globals;
     f.codes = codes;
@@ -50,9 +51,9 @@ void tp_frame(TP,tp_obj globals,tp_code *codes,tp_obj *ret_dest) {
     f.regs = (tp->cur <= 0?tp->regs:tp->frames[tp->cur].regs+tp->frames[tp->cur].cregs);
     f.ret_dest = ret_dest;
     f.lineno = 0;
-    f.line = tp_string("");
-    f.name = tp_string("?");
-    f.fname = tp_string("?");
+    f.line = tp_string(tp, "");
+    f.name = tp_string(tp, "?");
+    f.fname = tp_string(tp, "?");
     f.cregs = 0;
 //     return f;
     if (f.regs+256 >= tp->regs+TP_REGS || tp->cur >= TP_FRAMES-1) { tp_raise(,"tp_frame: stack overflow %d",tp->cur); }
@@ -97,16 +98,18 @@ void tp_handle(TP) {
     exit(-1);
 }
 
-void _tp_call(TP,tp_obj *dest, tp_obj fnc, tp_obj params) {
+void _tp_call(tp_vm *tp, tp_obj *dest, tp_obj fnc, tp_obj params) {
     if (obj_type(fnc) == TP_DICT) {
-        _tp_call(tp,dest,tp_get(tp, fnc, tp_string("__call__")),params);
+        _tp_call(tp, dest, tp_get(tp, fnc, tp_string(tp, "__call__")),params);
         return;
     }
+
     if (obj_type(fnc) == TP_FNC && !(fnc->fnc.ftype&1)) {
-        *dest = _tp_tcall(tp,fnc);
+        *dest = _tp_tcall(tp, fnc);
         tp_grey(tp,*dest);
         return;
     }
+
     if (obj_type(fnc) == TP_FNC) {
         tp_frame(tp, fnc->fnc.val->globals, fnc->fnc.fval,dest);
         if ((fnc->fnc.ftype&2)) {
@@ -212,7 +215,7 @@ int tp_step(tp_vm *tp) {
             cur += sizeof(tp_num)/4;
             continue;
         case TP_ISTRING:
-            RA = tp_string_n((*(cur+1)).string.val,UVBC);
+            RA = tp_string_n(tp, (*(cur+1)).string.val,UVBC);
             cur += (UVBC/4)+1;
             break;
         case TP_IDICT: RA = tp_dict_n(tp,VC/2,&RB); break;
@@ -235,12 +238,12 @@ int tp_step(tp_vm *tp) {
         case TP_IRETURN: tp_return(tp,RA); SR(0); break;
         case TP_IRAISE: _tp_raise(tp,RA); SR(0); break;
         case TP_IDEBUG:
-            tp_params_v(tp,3, tp_string("DEBUG:"), tp_number(tp, VA), RA); 
+            tp_params_v(tp,3, tp_string(tp, "DEBUG:"), tp_number(tp, VA), RA); 
             tp_print(tp);
             break;
         case TP_INONE: RA = None; break;
         case TP_ILINE:
-            f->line = tp_string_n((*(cur+1)).string.val,VA*4-1);
+            f->line = tp_string_n(tp, (*(cur+1)).string.val,VA*4-1);
 //             fprintf(stderr,"%7d: %s\n",UVBC,f->line.string.val);
             cur += VA; f->lineno = UVBC;
             break;
@@ -250,6 +253,7 @@ int tp_step(tp_vm *tp) {
         default: tp_raise(0,"tp_step: invalid instruction %d",e.i); break;
     }
     cur += 1;
+    tp->instructions++;
     }
     SR(0);
 }
@@ -261,26 +265,26 @@ void tp_run(TP,int cur) {
     tp->cur = cur-1; tp->jmp = 0;
 }
 
-tp_obj tp_call(TP, char *mod, char *fnc, tp_obj params) {
+tp_obj tp_call(tp_vm *tp, char *mod, char *fnc, tp_obj params) {
     tp_obj tmp;
     tp_obj r = None;
-    tmp = tp_get(tp,tp->modules,tp_string(mod));
-    tmp = tp_get(tp,tmp,tp_string(fnc));
-    _tp_call(tp,&r,tmp,params);
-    tp_run(tp,tp->cur);
+    tmp = tp_get(tp, tp->modules, tp_string(tp, mod));
+    tmp = tp_get(tp, tmp, tp_string(tp, fnc));
+    _tp_call(tp, &r, tmp, params);
+    tp_run(tp, tp->cur);
     return r;
 }
 
-tp_obj tp_import(TP,char *fname, char *name, void *codes) {
+tp_obj tp_import(tp_vm *tp, char *fname, char *name, void *codes) {
     tp_obj code = None;
     tp_obj g;
 
     if (!((fname && strstr(fname,".tpc")) || codes)) {
-        return tp_call(tp,"py2bc","import_fname",tp_params_v(tp,2,tp_string(fname),tp_string(name)));
+        return tp_call(tp,"py2bc","import_fname",tp_params_v(tp,2,tp_string(tp, fname),tp_string(tp, name)));
     }
 
     if (!codes) {
-        tp_params_v(tp,1,tp_string(fname));
+        tp_params_v(tp,1,tp_string(tp, fname));
         code = tp_load(tp);
         codes = code->string.val;
     } else {
@@ -288,10 +292,10 @@ tp_obj tp_import(TP,char *fname, char *name, void *codes) {
     }
 
     g = tp_dict(tp);
-    tp_set(tp,g,tp_string("__name__"),tp_string(name));
-    tp_set(tp,g,tp_string("__code__"),code); 
+    tp_set(tp,g,tp_string(tp, "__name__"),tp_string(tp, name));
+    tp_set(tp,g,tp_string(tp, "__code__"),code); 
     tp_frame(tp,g,codes,0);
-    tp_set(tp,tp->modules,tp_string(name),g);
+    tp_set(tp,tp->modules,tp_string(tp, name),g);
     
     if (!tp->jmp) { tp_run(tp,tp->cur); }
     
@@ -315,11 +319,11 @@ tp_obj tp_import_(TP) {
     }
 
     s = STR(mod);
-    r = tp_import(tp,STR(tp_add(tp,mod,tp_string(".tpc"))),s,0);
+    r = tp_import(tp,STR(tp_add(tp,mod,tp_string(tp, ".tpc"))),s,0);
     return r;
 }
 
-void tp_builtins(TP) {
+void tp_builtins(tp_vm *tp) {
     struct {char *s;void *f;} b[] = {
     {"print",tp_print}, {"range",tp_range}, {"min",tp_min},
     {"max",tp_max}, {"bind",tp_bind}, {"copy",tp_copy},
@@ -332,20 +336,23 @@ void tp_builtins(TP) {
     {"ord",tp_ord}, {"merge",tp_merge}, {0,0},
     };
     int i; for(i=0; b[i].s; i++) {
-        tp_set(tp,tp->builtins,tp_string(b[i].s),tp_fnc(tp,b[i].f));
+        tp_set(tp,tp->builtins,tp_string(tp, b[i].s),tp_fnc(tp,b[i].f));
     }
 }
 
-void tp_args(TP,int argc, char *argv[]) {
+void tp_args(tp_vm *tp, int argc, char *argv[]) {
     tp_obj self = tp_list(tp);
     int i;
-    for (i=1; i<argc; i++) { _tp_list_append(tp,self->list.val,tp_string(argv[i])); }
-    tp_set(tp,tp->builtins,tp_string("ARGV"),self);
+    for (i=1; i<argc; i++) { 
+        _tp_list_append(tp,self->list.val,tp_string(tp, argv[i])); 
+    }
+    tp_set(tp,tp->builtins,tp_string(tp, "ARGV"),self);
 }
 
 tp_obj tp_main(TP,char *fname, void *code) {
     return tp_import(tp,fname,"__main__",code);
 }
+
 tp_obj tp_compile(TP, tp_obj text, tp_obj fname) {
     return tp_call(tp,"BUILTINS","compile",tp_params_v(tp,2,text,fname));
 }
@@ -357,8 +364,8 @@ tp_obj tp_exec(TP,tp_obj code, tp_obj globals) {
     return r;
 }
 
-tp_obj tp_eval(TP, char *text, tp_obj globals) {
-    tp_obj code = tp_compile(tp,tp_string(text),tp_string("<eval>"));
+tp_obj tp_eval(tp_vm *tp, char *text, tp_obj globals) {
+    tp_obj code = tp_compile(tp,tp_string(tp, text),tp_string(tp, "<eval>"));
     return tp_exec(tp,code,globals);
 }
 

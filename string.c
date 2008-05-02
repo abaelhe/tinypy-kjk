@@ -1,18 +1,38 @@
-tp_obj tp_string_t(TP, int n) {
-    tp_obj r = tp_string_n(0,n);
+tp_obj tp_string_n(tp_vm *tp, char *v, int n) {
+    tp_obj val = obj_alloc(TP_STRING);
+    val->string.info = (struct _tp_string*) ((char*)val + offsetof(tp_string_, gci)); /* hack for uniform gc */
+    val->string.val = v;
+    val->string.len = n;
+    val->string.gci = 0;
+#if 0
+    /* TODO: I get assert() in tp_pop when it tries to pop an item from empty
+       list when this codepath is enabled */
+    return tp_track(tp, val);
+#else
+    return val;
+#endif
+}
+
+tp_obj tp_string(tp_vm *tp, char *v) {
+    return tp_string_n(tp, v, strlen(v));
+}
+
+tp_obj tp_string_t(tp_vm *tp, int n) {
+    tp_obj r = obj_alloc(TP_STRING);
+    r->string.len = n;
     r->string.info = tp_malloc(sizeof(_tp_string)+n);
     r->string.val = r->string.info->s;
     return r;
 }
 
-tp_obj tp_printf(TP,char *fmt,...) {
+tp_obj tp_printf(tp_vm *tp, char *fmt, ...) {
     int l;
     tp_obj r;
     char *s;
     va_list arg;
     va_start(arg, fmt);
     l = vsnprintf(NULL, 0, fmt,arg);
-    r = tp_string_t(tp,l);
+    r = tp_string_t(tp, l);
     s = r->string.val;
     va_end(arg);
     va_start(arg, fmt);
@@ -103,9 +123,9 @@ tp_obj tp_str2(TP) {
     return tp_str(tp,v);
 }
 
-tp_obj tp_chr(TP) {
+tp_obj tp_chr(tp_vm *tp) {
     int v = TP_NUM();
-    return tp_string_n(tp->chars[(unsigned char)v],1);
+    return tp_string_n(tp, tp->chars[(unsigned char)v],1);
 }
 
 tp_obj tp_ord(tp_vm *tp) {
@@ -113,7 +133,7 @@ tp_obj tp_ord(tp_vm *tp) {
     return tp_number(tp, s[0]);
 }
 
-tp_obj tp_strip(TP) {
+tp_obj tp_strip(tp_vm *tp) {
     char *v = TP_STR();
     int i, l = strlen(v); 
     int a = l, b = 0;
@@ -124,7 +144,9 @@ tp_obj tp_strip(TP) {
             a = _tp_min(a,i); b = _tp_max(b,i+1);
         }
     }
-    if ((b-a) < 0) { return tp_string(""); }
+    if ((b-a) < 0) { 
+        return tp_string(tp, ""); 
+    }
     r = tp_string_t(tp, b-a);
     s = r->string.val;
     memcpy(s,v+a,b-a);
@@ -201,13 +223,14 @@ static char *str_replace(char *s, int slen, char *toReplace, int toReplaceLen, c
     return result;
 }
 
-tp_obj tp_replace(TP) {
+tp_obj tp_replace(tp_vm *tp) {
     tp_obj s = TP_OBJ();
     tp_obj k = TP_OBJ();
     tp_obj v = TP_OBJ();
     int strlength;
     char *strresult = str_replace(s->string.val, s->string.len, k->string.val, k->string.len, v->string.val, v->string.len, &strlength);
-    tp_obj result = tp_string_n(strresult, strlength);
+    /* TODO: this is probably wrong, need to copy strresult */
+    tp_obj result = tp_string_n(tp, strresult, strlength);
     return tp_track(tp, result);
 }
 

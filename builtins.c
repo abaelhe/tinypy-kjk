@@ -124,7 +124,7 @@ tp_obj tp_save(tp_vm *tp) {
     return None;
 }
 
-tp_obj tp_load(TP) {
+tp_obj tp_load(tp_vm *tp) {
     FILE *f;
     long l;
     tp_obj r;
@@ -145,11 +145,11 @@ tp_obj tp_load(TP) {
 }
 
 
-tp_obj tp_fpack(TP) {
+tp_obj tp_fpack(tp_vm *tp) {
     tp_num v = TP_NUM();
     tp_obj r = tp_string_t(tp,sizeof(tp_num));
     *(tp_num*)r->string.val = v; 
-    return tp_track(tp,r);
+    return tp_track(tp, r);
 }
 
 tp_obj tp_abs(tp_vm *tp) {
