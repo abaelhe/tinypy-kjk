@@ -61,7 +61,7 @@ tp_obj tp_assert(TP) {
 tp_obj tp_range(tp_vm *tp) {
     int a,b,c,i;
     tp_obj r = tp_list(tp);
-    switch (__params->list.val->len) {
+    switch (tp_list_val(__params)->len) {
         case 1: 
             a = 0; 
             b = TP_NUM(); 
@@ -77,7 +77,7 @@ tp_obj tp_range(tp_vm *tp) {
     }
     if (c != 0) {
         for (i=a; (c>0) ? i<b : i>b; i+=c) {
-            _tp_list_append(tp, r->list.val, tp_number(tp, i));
+            _tp_list_append(tp, tp_list_val(r), tp_number(tp, i));
         }
     }
     return r;
