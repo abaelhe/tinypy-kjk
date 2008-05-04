@@ -50,6 +50,7 @@ typedef double tp_num;
 */
 #define tp_number_val(o) (o)->number.val
 #define tp_str_val(v) (v)->string.val
+#define tp_str_len(v) (v)->string.len
 
 #define tagSmallInt 0
 #define tagNumber   1
