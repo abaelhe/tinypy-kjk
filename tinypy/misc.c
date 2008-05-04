@@ -11,7 +11,7 @@ tp_obj _tp_dcall(tp_vm *tp, tp_obj fnc(tp_vm *)) {
 
 tp_obj _tp_tcall(tp_vm *tp, tp_obj fnc) {
     if (fnc->fnc.ftype & 2) {
-        _tp_list_insert(tp, tp->params->list.val, 0, fnc->fnc.val->self);
+        _tp_list_insert(tp, tp_list_val(tp->params), 0, fnc->fnc.val->self);
     }
     
     return _tp_dcall(tp, fnc->fnc.fval);
@@ -48,11 +48,11 @@ tp_obj tp_data(tp_vm *tp, void *v) {
     return tp_track(tp,r);
 }
 
-tp_obj tp_params(TP) {
+tp_obj tp_params(tp_vm *tp) {
     tp_obj r;
-    tp->params = tp->_params->list.val->items[tp->cur];
-    r = tp->_params->list.val->items[tp->cur];
-    r->list.val->len = 0;
+    tp->params = tp_list_val(tp->_params)->items[tp->cur];
+    r = tp_list_val(tp->_params)->items[tp->cur];
+    tp_list_val(r)->len = 0;
     return r;
 }
 
@@ -60,7 +60,7 @@ tp_obj tp_params_n(TP,int n, tp_obj argv[]) {
     tp_obj r = tp_params(tp);
     int i; 
     for (i=0; i<n; i++) { 
-        _tp_list_append(tp, r->list.val, argv[i]); 
+        _tp_list_append(tp, tp_list_val(r), argv[i]);
     }
     return r;
 }
@@ -70,7 +70,7 @@ tp_obj tp_params_v(TP,int n,...) {
     tp_obj r = tp_params(tp);
     va_list a; va_start(a,n);
     for (i=0; i<n; i++) { 
-        _tp_list_append(tp, r->list.val, va_arg(a,tp_obj)); 
+        _tp_list_append(tp, tp_list_val(r), va_arg(a,tp_obj));
     }
     va_end(a);
     return r;

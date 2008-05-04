@@ -86,9 +86,9 @@ void tp_follow(tp_vm *tp, tp_obj v) {
     int type = obj_type(v);
     if (type == TP_LIST) {
         int n;
-        for (n=0; n < v->list.val->len; n++) {
-            if (v->list.val->items[n])
-                tp_grey(tp, v->list.val->items[n]);
+        for (n=0; n < tp_list_val(v)->len; n++) {
+            if (tp_list_val(v)->items[n])
+                tp_grey(tp, tp_list_val(v)->items[n]);
         }
     }
     if (type == TP_DICT) {
@@ -144,7 +144,7 @@ void tp_delete(tp_vm *tp, tp_obj v) {
         obj_free(v);
         return;
     } else if (type == TP_LIST) {
-        _tp_list_free(v->list.val);
+        _tp_list_free(tp_list_val(v));
         obj_free(v);
         return;
     } else if (type == TP_FNC) {

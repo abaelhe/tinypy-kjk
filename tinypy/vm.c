@@ -24,14 +24,14 @@ tp_vm *_tp_init(void) {
     tp_set(tp,tp->builtins,tp_string(tp, "MODULES"),tp->modules);
     tp_set(tp,tp->modules,tp_string(tp, "BUILTINS"),tp->builtins);
     tp_set(tp,tp->builtins,tp_string(tp, "BUILTINS"),tp->builtins);
-    tp->regs = tp->_regs->list.val->items;
+    tp->regs = tp_list_val(tp->_regs)->items;
     tp_full(tp);
     return tp;
 }
 
-void tp_deinit(TP) {
-    while (tp->root->list.val->len) {
-        _tp_list_pop(tp,tp->root->list.val,0,"tp_deinit");
+void tp_deinit(tp_vm *tp) {
+    while (tp_list_val(tp->root)->len) {
+        _tp_list_pop(tp, tp_list_val(tp->root), 0, "tp_deinit");
     }
     tp_full(tp); 
     tp_full(tp);
@@ -115,7 +115,7 @@ void _tp_call(tp_vm *tp, tp_obj *dest, tp_obj fnc, tp_obj params) {
         tp_frame(tp, fnc->fnc.val->globals, fnc->fnc.fval,dest);
         if ((fnc->fnc.ftype&2)) {
             tp->frames[tp->cur].regs[0] = params;
-            _tp_list_insert(tp, params->list.val,0, fnc->fnc.val->self);
+            _tp_list_insert(tp, tp_list_val(params), 0, fnc->fnc.val->self);
         } else {
             tp->frames[tp->cur].regs[0] = params;
         }
@@ -347,7 +347,7 @@ void tp_args(tp_vm *tp, int argc, char *argv[]) {
     tp_obj self = tp_list(tp);
     int i;
     for (i=1; i<argc; i++) { 
-        _tp_list_append(tp,self->list.val,tp_string(tp, argv[i])); 
+        _tp_list_append(tp,tp_list_val(self),tp_string(tp, argv[i]));
     }
     tp_set(tp,tp->builtins,tp_string(tp, "ARGV"),self);
 }

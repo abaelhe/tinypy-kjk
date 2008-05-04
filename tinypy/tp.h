@@ -44,6 +44,7 @@ typedef double tp_num;
 #define tp_number_val(o) (o)->number.val
 #define tp_str_val(v) (v)->string.val
 #define tp_str_len(v) (v)->string.len
+#define tp_list_val(v) (v)->list.val
 
 typedef struct tp_number_ {
     objtype type;
@@ -229,11 +230,11 @@ tp_inline static tp_obj tp_type(TP,int t,tp_obj v) {
 #define TP_TYPE(t) tp_type(tp,t,TP_OBJ())
 #define TP_NUM() (tp_number_val(TP_TYPE(TP_NUMBER)))
 #define TP_STR() (STR(TP_TYPE(TP_STRING)))
-#define TP_DEFAULT(d) (__params->list.val->len ? tp_get(tp,__params,None):(d))
+#define TP_DEFAULT(d) (tp_list_val(__params)->len ? tp_get(tp,__params,None):(d))
 #define TP_LOOP(e) \
-    int __l = __params->list.val->len; \
+    int __l = tp_list_val(__params)->len; \
     int __i; for (__i=0; __i<__l; __i++) { \
-    (e) = _tp_list_get(tp,__params->list.val,__i,"TP_LOOP");
+    (e) = _tp_list_get(tp, tp_list_val(__params), __i, "TP_LOOP");
 #define TP_END \
     }
 

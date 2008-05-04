@@ -28,14 +28,14 @@ int tp_hash(TP,tp_obj v) {
         case TP_DICT: 
             return tp_lua_hash(&v->dict.val, sizeof(void*));
         case TP_LIST: {
-            int r = v->list.val->len; 
+            int r = tp_list_val(v)->len;
             int n; 
-            for (n=0; n < v->list.val->len; n++) {
-                tp_obj vv = v->list.val->items[n];
+            for (n=0; n < tp_list_val(v)->len; n++) {
+                tp_obj vv = tp_list_val(v)->items[n];
                 if (obj_type(vv) == TP_LIST)
-                    r += tp_lua_hash(&vv->list.val, sizeof(void*));
+                    r += tp_lua_hash(&tp_list_val(vv), sizeof(void*));
                 else
-                    r += tp_hash(tp, v->list.val->items[n]);
+                    r += tp_hash(tp, tp_list_val(v)->items[n]);
             } 
             return r;
         }
