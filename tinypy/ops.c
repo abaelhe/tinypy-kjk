@@ -24,7 +24,7 @@ int tp_bool(TP,tp_obj v) {
     switch(obj_type(v)) {
         case TP_NUMBER: return tp_number_val(v) != 0;
         case TP_NONE: return 0;
-        case TP_STRING: return v->string.len != 0;
+        case TP_STRING: return tp_str_len(v) != 0;
         case TP_LIST: return v->list.val->len != 0;
         case TP_DICT: return v->dict.val->len != 0;
         default: /* TP_FNC, TP_DATA */
@@ -98,7 +98,7 @@ tp_obj tp_get(tp_vm *tp, tp_obj self, tp_obj k) {
         }
     } else if (type == TP_STRING) {
         if (obj_type(k) == TP_NUMBER) {
-            int l = self->string.len;
+            int l = tp_str_len(self);
             int n = tp_number_val(k);
             n = (n<0?l+n:n);
             if (n >= 0 && n < l) { 
@@ -203,7 +203,7 @@ tp_obj tp_add(tp_vm *tp, tp_obj a, tp_obj b) {
     if (obj_type(a) == TP_NUMBER && obj_type(a) == obj_type(b)) {
         return tp_number(tp, tp_number_val(a) + tp_number_val(b));
     } else if (obj_type(a) == TP_STRING && obj_type(a) == obj_type(b)) {
-        int al = a->string.len, bl = b->string.len;
+        int al = tp_str_len(a), bl = tp_str_len(b);
         tp_obj r = tp_string_t(tp,al+bl);
         char *s = tp_str_val(r);
         memcpy(s, tp_str_val(a),al);
@@ -224,7 +224,7 @@ tp_obj tp_mul(tp_vm *tp, tp_obj a, tp_obj b) {
     if (obj_type(a) == TP_NUMBER && obj_type(a) == obj_type(b)) {
         return tp_number(tp, tp_number_val(a) * tp_number_val(b));
     } else if (obj_type(a) == TP_STRING && obj_type(b) == TP_NUMBER) {
-        int al = a->string.len; 
+        int al = tp_str_len(a);
         int n = tp_number_val(b);
         tp_obj r = tp_string_t(tp,al*n);
         char *s = tp_str_val(r);
@@ -240,7 +240,7 @@ tp_obj tp_mul(tp_vm *tp, tp_obj a, tp_obj b) {
 double _tp_len(tp_obj v) {
     int type = obj_type(v);
     if (type == TP_STRING) {
-        return v->string.len;
+        return tp_str_len(v);
     } else if (type == TP_DICT) {
         return v->dict.val->len;
     } else if (type == TP_LIST) {
@@ -266,10 +266,10 @@ int tp_cmp(tp_vm *tp, tp_obj a, tp_obj b) {
         case TP_NONE: return 0;
         case TP_NUMBER: return _tp_sign(tp_number_val(a) - tp_number_val(b));
         case TP_STRING: {
-            int minlen = _tp_min(a->string.len, b->string.len);
+            int minlen = _tp_min(tp_str_len(a), tp_str_len(b));
             int v = memcmp(tp_str_val(a), tp_str_val(b), minlen);
             if (v == 0) { 
-                v = a->string.len - b->string.len; 
+                v = tp_str_len(a) - tp_str_len(b);
             }
             return v;
         }

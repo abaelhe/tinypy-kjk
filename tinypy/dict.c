@@ -24,7 +24,7 @@ int tp_hash(TP,tp_obj v) {
         case TP_NUMBER: 
             return tp_lua_hash(&tp_number_val(v), sizeof(tp_num));
         case TP_STRING: 
-            return tp_lua_hash(tp_str_val(v), v->string.len);
+            return tp_lua_hash(tp_str_val(v), tp_str_len(v));
         case TP_DICT: 
             return tp_lua_hash(&v->dict.val, sizeof(void*));
         case TP_LIST: {

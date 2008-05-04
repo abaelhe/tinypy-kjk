@@ -43,6 +43,7 @@ typedef double tp_num;
 
 #define tp_number_val(o) (o)->number.val
 #define tp_str_val(v) (v)->string.val
+#define tp_str_len(v) (v)->string.len
 
 typedef struct tp_number_ {
     objtype type;

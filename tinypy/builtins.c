@@ -119,7 +119,7 @@ tp_obj tp_save(tp_vm *tp) {
     FILE *f;
     f = fopen(fname,"wb");
     if (!f) { tp_raise(None,"tp_save(%s,...)",fname); }
-    fwrite(tp_str_val(v), v->string.len,1,f);
+    fwrite(tp_str_val(v), tp_str_len(v),1,f);
     fclose(f);
     return None;
 }
@@ -138,7 +138,7 @@ tp_obj tp_load(tp_vm *tp) {
         tp_raise(None,"tp_load(%s)",fname); 
     }
     r = tp_string_t(tp,l);
-    s = r->string.val;
+    s = tp_str_val(r);
     fread(s,1,l,f);
     fclose(f);
     return tp_track(tp,r);
@@ -148,7 +148,7 @@ tp_obj tp_load(tp_vm *tp) {
 tp_obj tp_fpack(tp_vm *tp) {
     tp_num v = TP_NUM();
     tp_obj r = tp_string_t(tp,sizeof(tp_num));
-    *(tp_num*)r->string.val = v; 
+    *(tp_num*)tp_str_val(r) = v;
     return tp_track(tp, r);
 }
 
