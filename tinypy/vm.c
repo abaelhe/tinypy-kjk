@@ -40,14 +40,15 @@ void tp_deinit(TP) {
     tp_free(tp);
 }
 
-// tp_frame_ 
-void tp_frame(tp_vm *tp, tp_obj globals, tp_code *codes, tp_obj *ret_dest) {
+
+/* tp_frame_*/
+void tp_frame(TP,tp_obj globals,tp_code *codes,tp_obj *ret_dest) {
     tp_frame_ f;
     f.globals = globals;
     f.codes = codes;
     f.cur = f.codes;
     f.jmp = 0;
-//     fprintf(stderr,"tp->cur: %d\n",tp->cur);
+/*     fprintf(stderr,"tp->cur: %d\n",tp->cur);*/
     f.regs = (tp->cur <= 0?tp->regs:tp->frames[tp->cur].regs+tp->frames[tp->cur].cregs);
     f.ret_dest = ret_dest;
     f.lineno = 0;
@@ -55,7 +56,7 @@ void tp_frame(tp_vm *tp, tp_obj globals, tp_code *codes, tp_obj *ret_dest) {
     f.name = tp_string(tp, "?");
     f.fname = tp_string(tp, "?");
     f.cregs = 0;
-//     return f;
+/*     return f;*/
     if (f.regs+256 >= tp->regs+TP_REGS || tp->cur >= TP_FRAMES-1) { tp_raise(,"tp_frame: stack overflow %d",tp->cur); }
     tp->cur += 1;
     tp->frames[tp->cur] = f; 
@@ -128,8 +129,8 @@ void _tp_call(tp_vm *tp, tp_obj *dest, tp_obj fnc, tp_obj params) {
 void tp_return(TP, tp_obj v) {
     tp_obj *dest = tp->frames[tp->cur].ret_dest;
     if (dest) { *dest = v; tp_grey(tp,v); }
-//     memset(tp->frames[tp->cur].regs,0,TP_REGS_PER_FRAME*sizeof(tp_obj));
-//     fprintf(stderr,"regs:%d\n",(tp->frames[tp->cur].cregs+1));
+/*     memset(tp->frames[tp->cur].regs,0,TP_REGS_PER_FRAME*sizeof(tp_obj));
+       fprintf(stderr,"regs:%d\n",(tp->frames[tp->cur].cregs+1));*/
     memset(tp->frames[tp->cur].regs,0,tp->frames[tp->cur].cregs*sizeof(tp_obj));
     tp->cur -= 1;
 }
@@ -244,7 +245,7 @@ int tp_step(tp_vm *tp) {
         case TP_INONE: RA = None; break;
         case TP_ILINE:
             f->line = tp_string_n(tp, (*(cur+1)).string.val,VA*4-1);
-//             fprintf(stderr,"%7d: %s\n",UVBC,f->line.string.val);
+/*             fprintf(stderr,"%7d: %s\n",UVBC,f->line.string.val);*/
             cur += VA; f->lineno = UVBC;
             break;
         case TP_IFILE: f->fname = RA; break;
@@ -294,6 +295,7 @@ tp_obj tp_import(tp_vm *tp, char *fname, char *name, void *codes) {
     g = tp_dict(tp);
     tp_set(tp,g,tp_string(tp, "__name__"),tp_string(tp, name));
     tp_set(tp,g,tp_string(tp, "__code__"),code); 
+    tp_set(tp,g,tp_string(tp, "__dict__"),g);
     tp_frame(tp,g,codes,0);
     tp_set(tp,tp->modules,tp_string(tp, name),g);
     

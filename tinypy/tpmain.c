@@ -6,5 +6,3 @@ int main(int argc, char *argv[]) {
     tp_deinit(tp);
     return(0);
 }
-
-//

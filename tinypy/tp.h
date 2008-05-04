@@ -3,6 +3,9 @@
 
 #include <setjmp.h>
 #include <sys/stat.h>
+#ifndef __USE_ISOC99
+#define __USE_ISOC99
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,14 +14,25 @@
 #include <math.h>
 #include <assert.h>
 
+#ifdef __GNUC__
+#define tp_inline __inline__
+#endif
+
+#ifdef _MSC_VER
+#define tp_inline __inline
+#endif
+
+#ifndef tp_inline
+#error "Unsuported compiler"
+#endif
 #define tp_malloc(x) calloc((x),1)
 #define tp_realloc(x,y) realloc(x,y)
 #define tp_free(x) free(x)
 
-// #include <gc/gc.h>
-// #define tp_malloc(x) GC_MALLOC(x)
-// #define tp_realloc(x,y) GC_REALLOC(x,y)
-// #define tp_free(x)
+/* #include <gc/gc.h>
+   #define tp_malloc(x) GC_MALLOC(x)
+   #define tp_realloc(x,y) GC_REALLOC(x,y)
+   #define tp_free(x)*/
 
 typedef enum objtype {
     TP_NONE,TP_NUMBER,TP_STRING,TP_DICT,
@@ -137,7 +151,7 @@ typedef struct tp_frame_ {
 
 #define TP_GCMAX 4096
 #define TP_FRAMES 256
-// #define TP_REGS_PER_FRAME 256
+/* #define TP_REGS_PER_FRAME 256 */
 #define TP_REGS 16384
 typedef struct tp_vm {
     tp_obj builtins;
@@ -153,7 +167,7 @@ typedef struct tp_vm {
     tp_obj ex;
     char chars[256][2];
     int cur;
-    // gc
+    /* gc*/
     _tp_list *white;
     _tp_list *grey;
     _tp_list *black;
@@ -168,16 +182,16 @@ typedef struct tp_meta {
     tp_obj (*get)(TP,tp_obj,tp_obj);
     void (*set)(TP,tp_obj,tp_obj,tp_obj);
     void (*free)(TP,tp_obj);
-//     tp_obj (*del)(TP,tp_obj,tp_obj);
-//     tp_obj (*has)(TP,tp_obj,tp_obj);
-//     tp_obj (*len)(TP,tp_obj);
+/*     tp_obj (*del)(TP,tp_obj,tp_obj);
+       tp_obj (*has)(TP,tp_obj,tp_obj);
+       tp_obj (*len)(TP,tp_obj);*/
 } tp_meta;
 typedef struct _tp_data {
     int gci;
     tp_meta meta;
 } _tp_data;
 
-// NOTE: these are the few out of namespace items for convenience
+/* NOTE: these are the few out of namespace items for convenience*/
 #define True tp_number(tp, 1)
 #define False tp_number(tp, 0)
 #define STR(v) ((tp_str(tp,(v)))->string.val)
@@ -202,7 +216,7 @@ void tp_grey(TP,tp_obj);
 #define obj_type(o) o->type
 #define __params (tp->params)
 #define TP_OBJ() (tp_get(tp, tp->params, None))
-inline static tp_obj tp_type(TP,int t,tp_obj v) {
+tp_inline static tp_obj tp_type(TP,int t,tp_obj v) {
     if (obj_type(v) != t) { 
         tp_raise(None, "_tp_type(%d,%s)", t, STR(v)); 
     }
@@ -219,9 +233,9 @@ inline static tp_obj tp_type(TP,int t,tp_obj v) {
 #define TP_END \
     }
 
-inline static int _tp_min(int a, int b) { return (a<b?a:b); }
-inline static int _tp_max(int a, int b) { return (a>b?a:b); }
-inline static int _tp_sign(tp_num v) { return (v<0?-1:(v>0?1:0)); }
+tp_inline static int _tp_min(int a, int b) { return (a<b?a:b); }
+tp_inline static int _tp_max(int a, int b) { return (a>b?a:b); }
+tp_inline static int _tp_sign(tp_num v) { return (v<0?-1:(v>0?1:0)); }
 
 extern tp_obj obj_alloc(objtype type);
 extern tp_obj tp_number(tp_vm *tp, tp_num v);

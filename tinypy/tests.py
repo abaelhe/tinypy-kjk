@@ -1,7 +1,7 @@
 # figure out if we're in python or tinypy (tinypy displays "1.0" as "1")
 is_tinypy = (str(1.0) == "1")
 if not is_tinypy:
-    from build import *
+    from boot import *
 
 ################################################################################
 RM = 'rm -f '
@@ -14,23 +14,21 @@ if '-mingw32' in ARGV or "-win" in ARGV:
     TINYPY = 'tinypy '
     TMP = 'tmp.txt'
     #TMP = 'stdout.txt'
-
 def system_rm(fname):
     system(RM+fname)
 
 ################################################################################
-if not is_tinypy:
-    v = chksize()
+#if not is_tinypy:
+    #v = chksize()
     #assert (v < 65536)
 
 ################################################################################
 def t_show(t):
-    if t['type'] == 'string': return '"'+t['val']+'"'
-    if t['type'] == 'number': return t['val']
-    if t['type'] == 'symbol': return t['val']
-    if t['type'] == 'name': return '$'+t['val']
-    return t['type']
-
+    if t.type == 'string': return '"'+t.val+'"'
+    if t.type == 'number': return t.val
+    if t.type == 'symbol': return t.val
+    if t.type == 'name': return '$'+t.val
+    return t.type
 def t_tokenize(s,exp=''):
     import tokenize
     result = tokenize.tokenize(s)
@@ -65,16 +63,17 @@ if __name__ == '__main__':
     t_tokenize("  #","")
     t_tokenize("None","None")
 
+
 ################################################################################
 
 def t_lisp(t):
-    if t['type'] == 'block':
-        return """{%s}"""%' '.join([t_lisp(tt) for tt in t['items']])
-    if t['type'] == 'statement':
-        return """%s;"""%' '.join([t_lisp(tt) for tt in t['items']])
-    if 'items' not in t: return t['val']
-    args = ''.join([" "+t_lisp(tt) for tt in t['items']])
-    return "("+t['val']+args+")"
+    if t.type == 'block':
+        return """{%s}"""%' '.join([t_lisp(tt) for tt in t.items])
+    if t.type == 'statement':
+        return """%s;"""%' '.join([t_lisp(tt) for tt in t.items])
+    if t.items == None: return t.val
+    args = ''.join([" "+t_lisp(tt) for tt in t.items])
+    return "("+t.val+args+")"
 
 def t_parse(s,ex=''):
     import tokenize, parse
@@ -184,24 +183,12 @@ def t_render(ss,ex,exact=True):
         f = save(fname,r)
         n += 1
     system_rm('tmp.txt')
-    #print(VM + fname + " > tmp.txt")
     system(VM+fname+' > tmp.txt')
     res = load(TMP).strip()
     #print(ss,ex,res)
-    if exact:
-        if not res == ex:
-            print(VM + fname + " > tmp.txt")
-            print "ss:  '" + str(ss) + "'"
-            print "ex:  '" + str(ex) + "'"
-            print "res: '" + str(res) + "'"
-        assert(res == ex)
-    else:
-        if not ex in res:
-            print(VM + fname + " > tmp.txt")
-            print "ss:  '" + str(ss) + "'"
-            print "ex:  '" + str(ex) + "'"
-            print "res: '" + str(res) + "'"
-        assert(ex in res)
+    if exact: assert(res == ex)
+    else: assert(ex in res)
+
 
 def test_range():
     t_render("""print(str(range(4))[:5])""","<list")
@@ -688,7 +675,20 @@ test()
     #t_render("x = 'OK',\nprint(x[0])","OK")
 
     test_range()
+    
+    t_render(['v="OK"',"from tmp1 import *\nprint(v)"],"OK")
+    t_render(['v="OK"',"from tmp1 import v\nprint(v)"],"OK")
+    t_render(['x="X";y="K"',"x = 'O'\nfrom tmp1 import y\nprint(x+y)"],"OK")
 
+    t_render("""
+def test(**e):
+    print(e['x'])
+test(x='OK')
+""","OK")
+
+    # test register allocator
+    s = "def f():pass\n"+("f()\n"*256)+"print('OK')"
+    t_render(s,"OK")
 
 ################################################################################
 

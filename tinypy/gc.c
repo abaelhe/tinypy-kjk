@@ -1,9 +1,9 @@
-// tp_obj tp_track(TP,tp_obj v) { return v; }
-// void tp_grey(TP,tp_obj v) { }
-// void tp_full(TP) { }
-// void tp_gc_init(TP) { }
-// void tp_gc_deinit(TP) { }
-// void tp_delete(TP,tp_obj v) { }
+/* tp_obj tp_track(TP,tp_obj v) { return v; }
+   void tp_grey(TP,tp_obj v) { }
+   void tp_full(TP) { }
+   void tp_gc_init(TP) { }
+   void tp_gc_deinit(TP) { }
+   void tp_delete(TP,tp_obj v) { }*/
 
 /* This is tri-color, incremental garbage collector.
 */
@@ -162,8 +162,8 @@ void tp_collect(tp_vm *tp) {
             continue; 
         }
         if (obj_type(r) == TP_STRING) {
-            //this can't be moved into tp_delete, because tp_delete is
-            // also used by tp_track_s to delete redundant strings
+            /* this can't be moved into tp_delete, because tp_delete is
+               also used by tp_track_s to delete redundant strings */
             _tp_dict_del(tp, tp->strings, r, "tp_collect");
         }
         tp_delete(tp, r);
