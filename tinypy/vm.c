@@ -212,7 +212,8 @@ int tp_step(tp_vm *tp) {
         case TP_IDEL: tp_del(tp,RA,RB); break;
         case TP_IMOVE: RA = RB; break;
         case TP_INUMBER:
-            RA = tp_number(tp, *(tp_num*)(++cur)->string.val);
+            ++cur;
+            RA = tp_number(tp, *(tp_num*)tp_str_val(cur));
             cur += sizeof(tp_num)/4;
             continue;
         case TP_ISTRING:
@@ -287,7 +288,7 @@ tp_obj tp_import(tp_vm *tp, char *fname, char *name, void *codes) {
     if (!codes) {
         tp_params_v(tp,1,tp_string(tp, fname));
         code = tp_load(tp);
-        codes = code->string.val;
+        codes = tp_str_val(code);
     } else {
         code = tp_data(tp, codes);
     }
@@ -307,7 +308,7 @@ tp_obj tp_import(tp_vm *tp, char *fname, char *name, void *codes) {
 tp_obj tp_exec_(TP) {
     tp_obj code = TP_OBJ();
     tp_obj globals = TP_OBJ();
-    tp_frame(tp, globals,(void*)code->string.val,0);
+    tp_frame(tp, globals,(void*)tp_str_val(code),0);
     return None;
 }
 
@@ -361,7 +362,7 @@ tp_obj tp_compile(TP, tp_obj text, tp_obj fname) {
 
 tp_obj tp_exec(TP,tp_obj code, tp_obj globals) {
     tp_obj r = None;
-    tp_frame(tp, globals, (void*)code->string.val,&r);
+    tp_frame(tp, globals, (void*)tp_str_val(code),&r);
     tp_run(tp,tp->cur);
     return r;
 }

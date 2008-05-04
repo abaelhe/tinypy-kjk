@@ -119,7 +119,7 @@ tp_obj tp_save(tp_vm *tp) {
     FILE *f;
     f = fopen(fname,"wb");
     if (!f) { tp_raise(None,"tp_save(%s,...)",fname); }
-    fwrite(v->string.val, v->string.len,1,f);
+    fwrite(tp_str_val(v), v->string.len,1,f);
     fclose(f);
     return None;
 }

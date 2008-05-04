@@ -42,6 +42,7 @@ typedef enum objtype {
 typedef double tp_num;
 
 #define tp_number_val(o) (o)->number.val
+#define tp_str_val(v) (v)->string.val
 
 typedef struct tp_number_ {
     objtype type;
@@ -196,7 +197,7 @@ typedef struct _tp_data {
 /* NOTE: these are the few out of namespace items for convenience*/
 #define True tp_number(tp, 1)
 #define False tp_number(tp, 0)
-#define STR(v) ((tp_str(tp,(v)))->string.val)
+#define STR(v) (tp_str_val(tp_str(tp,(v))))
 extern tp_obj_ NoneObj;
 #define None &NoneObj
 
