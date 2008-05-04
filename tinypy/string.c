@@ -1,7 +1,7 @@
 tp_obj tp_string_n(tp_vm *tp, char *v, int n) {
     tp_obj val = obj_alloc(TP_STRING);
     val->string.info = (struct _tp_string*) ((char*)val + offsetof(tp_string_, gci)); /* hack for uniform gc */
-    val->string.val = v;
+    tp_str_val(val) = v;
     val->string.len = n;
     val->string.gci = 0;
     return tp_track(tp, val);
@@ -15,7 +15,7 @@ tp_obj tp_string_t(tp_vm *tp, int n) {
     tp_obj r = obj_alloc(TP_STRING);
     r->string.len = n;
     r->string.info = tp_malloc(sizeof(_tp_string)+n);
-    r->string.val = r->string.info->s;
+    tp_str_val(r) = r->string.info->s;
     return r;
 }
 
@@ -27,7 +27,7 @@ tp_obj tp_printf(tp_vm *tp, char *fmt, ...) {
     va_start(arg, fmt);
     l = vsnprintf(NULL, 0, fmt,arg);
     r = tp_string_t(tp, l);
-    s = r->string.val;
+    s = tp_str_val(r);
     va_end(arg);
     va_start(arg, fmt);
     vsprintf(s,fmt,arg);
@@ -38,7 +38,7 @@ tp_obj tp_printf(tp_vm *tp, char *fmt, ...) {
 int _tp_str_index(tp_obj s, tp_obj k) {
     int i=0;
     while ((s->string.len - i) >= k->string.len) {
-        if (memcmp(s->string.val+i,k->string.val,k->string.len) == 0) {
+        if (memcmp(tp_str_val(s)+i,tp_str_val(k),k->string.len) == 0) {
             return i;
         }
         i += 1;
@@ -57,16 +57,16 @@ tp_obj tp_join(TP) {
         l += tp_str(tp, val->list.val->items[i])->string.len;
     }
     r = tp_string_t(tp,l);
-    s = r->string.val;
+    s = tp_str_val(r);
     l = 0;
     for (i=0; i < val->list.val->len; i++) {
         tp_obj e;
         if (i!=0) {
-            memcpy(s+l, delim->string.val, delim->string.len); 
+            memcpy(s+l, tp_str_val(delim), delim->string.len);
             l += delim->string.len;
         }
         e = tp_str(tp, val->list.val->items[i]);
-        memcpy(s+l, e->string.val, e->string.len); 
+        memcpy(s+l, tp_str_val(e), e->string.len);
         l += e->string.len;
     }
     return tp_track(tp,r);
@@ -74,8 +74,8 @@ tp_obj tp_join(TP) {
 
 tp_obj tp_string_slice(TP,tp_obj s, int a, int b) {
     tp_obj r = tp_string_t(tp,b-a);
-    char *m = r->string.val;
-    memcpy(m, s->string.val+a,b-a);
+    char *m = tp_str_val(r);
+    memcpy(m, tp_str_val(s)+a,b-a);
     return tp_track(tp,r);
 }
 
@@ -87,7 +87,7 @@ tp_obj tp_split(TP) {
     int i;
     while ((i=_tp_str_index(v,d))!=-1) {
         _tp_list_append(tp, r->list.val, tp_string_slice(tp,v,0,i));
-        v->string.val += i + d->string.len; 
+        tp_str_val(v) += i + d->string.len;
         v->string.len -= i + d->string.len;
 /*         tp_grey(tp,r); // should stop gc or something instead */
     }
@@ -142,7 +142,7 @@ tp_obj tp_strip(tp_vm *tp) {
         return tp_string(tp, ""); 
     }
     r = tp_string_t(tp, b-a);
-    s = r->string.val;
+    s = tp_str_val(r);
     memcpy(s,v+a,b-a);
     return tp_track(tp,r);
 }
@@ -223,9 +223,9 @@ tp_obj tp_replace(tp_vm *tp) {
     tp_obj v = TP_OBJ();
     int strlength;
     /* TODO: optimize by not copying strresult */
-    char *strresult = str_replace(s->string.val, s->string.len, k->string.val, k->string.len, v->string.val, v->string.len, &strlength);
+    char *strresult = str_replace(tp_str_val(s), s->string.len, tp_str_val(k), k->string.len, tp_str_val(v), v->string.len, &strlength);
     tp_obj result = tp_string_t(tp, strlength);
-    memcpy(result->string.val, strresult, strlength);
+    memcpy(tp_str_val(result), strresult, strlength);
     free(strresult);
     return tp_track(tp, result);
 }

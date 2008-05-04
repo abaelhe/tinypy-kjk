@@ -48,6 +48,8 @@ typedef double tp_num;
  10 - string (not used yet)
  11 - the rest
 */
+#define tp_number_val(o) (o)->number.val
+#define tp_str_val(v) (v)->string.val
 
 #define tagSmallInt 0
 #define tagNumber   1
@@ -210,7 +212,7 @@ typedef struct _tp_data {
 /* NOTE: these are the few out of namespace items for convenience*/
 #define True tp_number(tp, 1)
 #define False tp_number(tp, 0)
-#define STR(v) ((tp_str(tp,(v)))->string.val)
+#define STR(v) (tp_str_val(tp_str(tp,(v))))
 extern tp_obj_ NoneObj;
 #define None tag_ptr(&NoneObj, tagObject)
 
