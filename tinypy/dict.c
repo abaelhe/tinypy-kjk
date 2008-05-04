@@ -39,8 +39,8 @@ int tp_hash(TP,tp_obj v) {
             } 
             return r;
         }
-        case TP_FNC: return tp_lua_hash(&v->fnc.val,sizeof(void*));
-        case TP_DATA: return tp_lua_hash(&v->data.val,sizeof(void*));
+        case TP_FNC: return tp_lua_hash(&tp_fnc_val(v), sizeof(void*));
+        case TP_DATA: return tp_lua_hash(&tp_data_val(v), sizeof(void*));
     }
     tp_raise(0,"tp_hash(%s)",STR(v));
 }

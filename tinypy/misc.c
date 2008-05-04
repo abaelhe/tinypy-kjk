@@ -10,11 +10,11 @@ tp_obj _tp_dcall(tp_vm *tp, tp_obj fnc(tp_vm *)) {
 }
 
 tp_obj _tp_tcall(tp_vm *tp, tp_obj fnc) {
-    if (fnc->fnc.ftype & 2) {
-        _tp_list_insert(tp, tp_list_val(tp->params), 0, fnc->fnc.val->self);
+    if (tp_fnc_ftype(fnc) & 2) {
+        _tp_list_insert(tp, tp_list_val(tp->params), 0, tp_fnc_val(fnc)->self);
     }
     
-    return _tp_dcall(tp, fnc->fnc.fval);
+    return _tp_dcall(tp, tp_fnc_fval(fnc));
 }
 
 tp_obj tp_fnc_new(tp_vm *tp, int t, void *v, tp_obj s, tp_obj g) {
@@ -22,9 +22,9 @@ tp_obj tp_fnc_new(tp_vm *tp, int t, void *v, tp_obj s, tp_obj g) {
     _tp_fnc *self = tp_malloc(sizeof(_tp_fnc));
     self->self = s;
     self->globals = g;
-    r->fnc.ftype = t;
-    r->fnc.val = self;
-    r->fnc.fval = v;
+    tp_fnc_ftype(r) = t;
+    tp_fnc_val(r) = self;
+    tp_fnc_fval(r) = v;
     return tp_track(tp, r);
 }
 
@@ -42,9 +42,10 @@ tp_obj tp_method(TP, tp_obj self,tp_obj v(TP)) {
 
 tp_obj tp_data(tp_vm *tp, void *v) {
     tp_obj r = obj_alloc(TP_DATA);
-    r->data.info = tp_malloc(sizeof(_tp_data));
-    r->data.val = v;
-    r->data.meta = &r->data.info->meta;
+    tp_data_ *d = &r->data;
+    d->info = tp_malloc(sizeof(_tp_data));
+    d->val = v;
+    d->meta = &d->info->meta;
     return tp_track(tp,r);
 }
 
