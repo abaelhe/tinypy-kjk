@@ -200,9 +200,9 @@ int tp_step(tp_vm *tp) {
         case TP_IIF: if (tp_bool(tp,RA)) { cur += 1; } break;
         case TP_IGET: RA = tp_get(tp,RB,RC); GA; break;
         case TP_IITER:
-            if (RC->number.val < _tp_len(RB)) {
+            if (tp_number_val(RC) < _tp_len(RB)) {
                 RA = tp_iter(tp,RB,RC); GA;
-                RC->number.val += 1;
+                tp_number_val(RC) += 1;
                 cur += 1;
             }
             break;
@@ -316,7 +316,7 @@ tp_obj tp_import_(TP) {
     char *s;
     tp_obj r;
 
-    if (tp_has(tp, tp->modules,mod)->number.val) {
+    if (tp_number_val(tp_has(tp, tp->modules,mod))) {
         return tp_get(tp, tp->modules, mod);
     }
 

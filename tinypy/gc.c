@@ -18,8 +18,20 @@ typedef struct freelist {
     struct freelist *next;
 } freelist;
 
+typedef unsigned char byte;
+
+/* To optimize allocation of doubles, we allocate them in blocks of 15
+   with the last 8 bytes for gc grey bit. The total size of the struct is
+   then 16*8 = 128 bytes.
+*/
+struct floatsblock {
+    double nums[15];
+    byte greybits[8];
+};
+
 /* TODO: free objects on objfreelist at some point */
 freelist *objfreelist = NULL;
+freelist *numfreelist = NULL;
 
 tp_obj obj_alloc(objtype type) {
     tp_obj v;
@@ -52,7 +64,7 @@ void obj_free(tp_obj v) {
 
 tp_obj tp_number(tp_vm *tp, tp_num v) { 
     tp_obj val = obj_alloc(TP_NUMBER);
-    val->number.val = v;
+    tp_number_val(val) = v;
     val->number.gci = 0;
     val->number.info = (char*)val + offsetof(tp_number_, gci); /* hack for uniform gc */
     return tp_track(tp, val);

@@ -41,6 +41,8 @@ typedef enum objtype {
 
 typedef double tp_num;
 
+#define tp_number_val(o) (o)->number.val
+
 typedef struct tp_number_ {
     objtype type;
     void *info; /* a hack -> this always points to offset of gci */
@@ -223,7 +225,7 @@ tp_inline static tp_obj tp_type(TP,int t,tp_obj v) {
     return v;
 }
 #define TP_TYPE(t) tp_type(tp,t,TP_OBJ())
-#define TP_NUM() (TP_TYPE(TP_NUMBER)->number.val)
+#define TP_NUM() (tp_number_val(TP_TYPE(TP_NUMBER)))
 #define TP_STR() (STR(TP_TYPE(TP_STRING)))
 #define TP_DEFAULT(d) (__params->list.val->len ? tp_get(tp,__params,None):(d))
 #define TP_LOOP(e) \

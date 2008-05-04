@@ -22,7 +22,7 @@ int tp_hash(TP,tp_obj v) {
     switch (obj_type(v)) {
         case TP_NONE: return 0;
         case TP_NUMBER: 
-            return tp_lua_hash(&v->number.val, sizeof(tp_num));
+            return tp_lua_hash(&tp_number_val(v), sizeof(tp_num));
         case TP_STRING: 
             return tp_lua_hash(v->string.val, v->string.len);
         case TP_DICT: 

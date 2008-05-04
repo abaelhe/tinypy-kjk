@@ -71,7 +71,7 @@ tp_obj tp_range(tp_vm *tp) {
         case 3: 
             a = TP_NUM(); 
             b = TP_NUM(); 
-            c = TP_DEFAULT(tp_number(tp, 1))->number.val; 
+            c = tp_number_val(TP_DEFAULT(tp_number(tp, 1))); 
             break;
         default: return r;
     }
@@ -101,7 +101,7 @@ tp_obj tp_istype(tp_vm *tp) {
 
 tp_obj tp_float(tp_vm *tp) {
     tp_obj v = TP_OBJ();
-    int ord = TP_DEFAULT(tp_number(tp, 0))->number.val;
+    int ord = tp_number_val(TP_DEFAULT(tp_number(tp, 0)));
     int type = obj_type(v);
     if (type == TP_NUMBER) { return v; }
     if (type == TP_STRING) {
@@ -153,11 +153,11 @@ tp_obj tp_fpack(tp_vm *tp) {
 }
 
 tp_obj tp_abs(tp_vm *tp) {
-    return tp_number(tp, fabs(tp_float(tp)->number.val));
+    return tp_number(tp, fabs(tp_number_val(tp_float(tp))));
 }
 
 tp_obj tp_int(tp_vm *tp) {
-    return tp_number(tp, (long)tp_float(tp)->number.val);
+    return tp_number(tp, (long)tp_number_val(tp_float(tp)));
 }
 
 tp_num _roundf(tp_num v) {
@@ -167,7 +167,7 @@ tp_num _roundf(tp_num v) {
 }
 
 tp_obj tp_round(tp_vm *tp) {
-    return tp_number(tp, _roundf(tp_float(tp)->number.val));
+    return tp_number(tp, _roundf(tp_number_val(tp_float(tp))));
 }
 
 tp_obj tp_exists(tp_vm *tp) {
