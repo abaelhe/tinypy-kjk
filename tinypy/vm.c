@@ -105,17 +105,17 @@ void _tp_call(tp_vm *tp, tp_obj *dest, tp_obj fnc, tp_obj params) {
         return;
     }
 
-    if (obj_type(fnc) == TP_FNC && !(fnc->fnc.ftype&1)) {
+    if (obj_type(fnc) == TP_FNC && !(tp_fnc_ftype(fnc) & 1)) {
         *dest = _tp_tcall(tp, fnc);
         tp_grey(tp,*dest);
         return;
     }
 
     if (obj_type(fnc) == TP_FNC) {
-        tp_frame(tp, fnc->fnc.val->globals, fnc->fnc.fval,dest);
-        if ((fnc->fnc.ftype&2)) {
+        tp_frame(tp, tp_fnc_val(fnc)->globals, tp_fnc_fval(fnc), dest);
+        if (tp_fnc_ftype(fnc) & 2) {
             tp->frames[tp->cur].regs[0] = params;
-            _tp_list_insert(tp, tp_list_val(params), 0, fnc->fnc.val->self);
+            _tp_list_insert(tp, tp_list_val(params), 0, tp_fnc_val(fnc)->self);
         } else {
             tp->frames[tp->cur].regs[0] = params;
         }

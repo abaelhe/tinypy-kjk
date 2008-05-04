@@ -13,9 +13,9 @@ tp_obj tp_str(tp_vm *tp, tp_obj self) {
     } else if (type == TP_NONE) {
         return tp_string(tp, "None");
     } else if (type == TP_DATA) {
-        return tp_printf(tp,"<data 0x%x>",self->data.val);
+        return tp_printf(tp,"<data 0x%x>", tp_data_val(self));
     } else if (type == TP_FNC) {
-        return tp_printf(tp,"<fnc 0x%x>",self->fnc.val);
+        return tp_printf(tp,"<fnc 0x%x>", tp_fnc_val(self));
     }
     return tp_string(tp, "<?>");
 }
@@ -118,7 +118,7 @@ tp_obj tp_get(tp_vm *tp, tp_obj self, tp_obj k) {
             }
         }
     } else if (type == TP_DATA) {
-        return self->data.meta->get(tp,self,k);
+        return tp_data_meta(self)->get(tp,self,k);
     }
 
     if (obj_type(k) == TP_LIST) {
@@ -193,7 +193,7 @@ void tp_set(TP,tp_obj self, tp_obj k, tp_obj v) {
             }
         }
     } else if (type == TP_DATA) {
-        self->data.meta->set(tp,self,k,v);
+        tp_data_meta(self)->set(tp,self,k,v);
         return;
     }
     tp_raise(,"tp_set(%s,%s,%s)",STR(self),STR(k),STR(v));
@@ -291,8 +291,8 @@ int tp_cmp(tp_vm *tp, tp_obj a, tp_obj b) {
             return tp_list_val(a)->len - tp_list_val(b)->len;
         }
         case TP_DICT: return tp_dict_val(a) - tp_dict_val(b);
-        case TP_FNC: return a->fnc.val - b->fnc.val;
-        case TP_DATA: return (char*)a->data.val - (char*)b->data.val;
+        case TP_FNC: return tp_fnc_val(a) - tp_fnc_val(b);
+        case TP_DATA: return (char*)tp_data_val(a) - (char*)tp_data_val(b);
     }
     tp_raise(0,"tp_cmp(%s,%s)",STR(a),STR(b));
 }

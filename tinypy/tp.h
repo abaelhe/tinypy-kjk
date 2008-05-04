@@ -51,8 +51,14 @@ typedef double tp_num;
 #define tp_number_val(o) (o)->number.val
 #define tp_str_val(v) (v)->string.val
 #define tp_str_len(v) (v)->string.len
+#define tp_str_info(v) (v)->string.info
 #define tp_list_val(v) (v)->list.val
 #define tp_dict_val(v) (v)->dict.val
+#define tp_fnc_val(v) (v)->fnc.val
+#define tp_fnc_fval(v) (v)->fnc.fval
+#define tp_fnc_ftype(v) (v)->fnc.ftype
+#define tp_data_val(v) (v)->data.val
+#define tp_data_meta(v) (v)->data.meta
 
 #define tagSmallInt 0
 #define tagNumber   1

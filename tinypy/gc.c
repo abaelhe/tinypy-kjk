@@ -267,8 +267,8 @@ void tp_follow(tp_vm *tp, tp_obj v) {
         }
     }
     if (type == TP_FNC) {
-        tp_grey(tp, v->fnc.val->self);
-        tp_grey(tp, v->fnc.val->globals);
+        tp_grey(tp, tp_fnc_val(v)->self);
+        tp_grey(tp, tp_fnc_val(v)->globals);
     }
 }
 
@@ -303,8 +303,9 @@ void tp_delete(tp_vm *tp, tp_obj v) {
     int type = obj_type(v);
     /* checks are ordered by frequency of allocation */
     if (type == TP_STRING) {
-        if (v->string.info && !((char*)v->string.info < (char*)v + sizeof(tp_obj_))) {
-            tp_free(v->string.info);
+        tp_string_ *s = &v->string;
+        if (s->info && !((char*)s->info < (char*)v + sizeof(tp_obj_))) {
+            tp_free(s->info);
         }
         obj_free(v);
         return;
@@ -316,7 +317,7 @@ void tp_delete(tp_vm *tp, tp_obj v) {
         obj_free(v);
         return;
     } else if (type == TP_FNC) {
-        tp_free(v->fnc.val);
+        tp_free(tp_fnc_val(v));
         obj_free(v);
         return;
     } else if (type == TP_DICT) {
@@ -324,10 +325,11 @@ void tp_delete(tp_vm *tp, tp_obj v) {
         obj_free(v);
         return;
     } else if (type == TP_DATA) {
-        if (v->data.meta && v->data.meta->free) {
-            v->data.meta->free(tp,v);
+        tp_data_ *d = &v->data;
+        if (d->meta && d->meta->free) {
+            d->meta->free(tp,v);
         }
-        tp_free(v->data.info);
+        tp_free(d->info);
         obj_free(v);
         return;
     }

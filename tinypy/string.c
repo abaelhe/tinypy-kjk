@@ -1,9 +1,10 @@
 tp_obj tp_string_n(tp_vm *tp, char *v, int n) {
     tp_obj val = obj_alloc(TP_STRING);
-    val->string.info = (struct _tp_string*) ((char*)val + offsetof(tp_string_, gci)); /* hack for uniform gc */
-    tp_str_val(val) = v;
-    tp_str_len(val) = n;
-    val->string.gci = 0;
+    tp_string_ *s = &val->string;
+    s->info = (struct _tp_string*) ((char*)val + offsetof(tp_string_, gci)); /* hack for uniform gc */
+    s->val = v;
+    s->len = n;
+    s->gci = 0;
     return tp_track(tp, val);
 }
 
@@ -14,8 +15,8 @@ tp_obj tp_string(tp_vm *tp, char *v) {
 tp_obj tp_string_t(tp_vm *tp, int n) {
     tp_obj r = obj_alloc(TP_STRING);
     tp_str_len(r) = n;
-    r->string.info = tp_malloc(sizeof(_tp_string)+n);
-    tp_str_val(r) = r->string.info->s;
+    tp_str_info(r) = tp_malloc(sizeof(_tp_string)+n);
+    tp_str_val(r) = tp_str_info(r)->s;
     return r;
 }
 
