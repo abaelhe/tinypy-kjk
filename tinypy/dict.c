@@ -26,7 +26,7 @@ int tp_hash(tp_vm *tp, tp_obj v) {
         case TP_STRING: 
             return tp_lua_hash(tp_str_val(v), tp_str_len(v));
         case TP_DICT: 
-            return tp_lua_hash(&v->dict.val, sizeof(void*));
+            return tp_lua_hash(&tp_dict_val(v), sizeof(void*));
         case TP_LIST: {
             int r = tp_list_val(v)->len;
             int n; 
@@ -152,12 +152,12 @@ _tp_dict *_tp_dict_new(void) {
 
 tp_obj _tp_dict_copy(tp_vm *tp, tp_obj rr) {
     tp_obj obj = obj_alloc(TP_DICT);
-    _tp_dict *o = rr->dict.val;
+    _tp_dict *o = tp_dict_val(rr);
     _tp_dict *r = _tp_dict_new(); 
     *r = *o;
     r->items = tp_malloc(sizeof(tp_item)*o->alloc);
-    memcpy(r->items,o->items, sizeof(tp_item)*o->alloc);
-    obj->dict.val = r;
+    memcpy(r->items, o->items, sizeof(tp_item)*o->alloc);
+    tp_dict_val(obj) = r;
     return tp_track(tp, obj);
 }
 
@@ -176,17 +176,17 @@ int _tp_dict_next(TP,_tp_dict *self) {
 tp_obj tp_merge(TP) {
     tp_obj self = TP_OBJ();
     tp_obj v = TP_OBJ();
-    int i; for (i=0; i<v->dict.val->len; i++) {
-        int n = _tp_dict_next(tp, v->dict.val);
-        _tp_dict_set(tp, self->dict.val,
-            v->dict.val->items[n].key, v->dict.val->items[n].val);
+    int i; for (i=0; i<tp_dict_val(v)->len; i++) {
+        int n = _tp_dict_next(tp, tp_dict_val(v));
+        _tp_dict_set(tp, tp_dict_val(self),
+            tp_dict_val(v)->items[n].key, tp_dict_val(v)->items[n].val);
     }
     return None;
 }
 
 tp_obj tp_dict(tp_vm *tp) {
     tp_obj r = obj_alloc(TP_DICT);
-    r->dict.val = _tp_dict_new();
+    tp_dict_val(r) = _tp_dict_new();
     return tp ? tp_track(tp,r) : r;
 }
 

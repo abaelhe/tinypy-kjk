@@ -52,6 +52,7 @@ typedef double tp_num;
 #define tp_str_val(v) (v)->string.val
 #define tp_str_len(v) (v)->string.len
 #define tp_list_val(v) (v)->list.val
+#define tp_dict_val(v) (v)->dict.val
 
 #define tagSmallInt 0
 #define tagNumber   1
