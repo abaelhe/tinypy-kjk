@@ -8,6 +8,17 @@
 /* This is tri-color, incremental garbage collector.
 */
 
+/* Ideas for improvements:
+ - gather stats for double and cache few more frequently used doubles (0, 1)
+ - use fixed pointers for none, tp_number(0), tp_number(1) (and maybe some other
+   numbers)
+*/
+
+void tp_gcinc(tp_vm *tp);
+
+/* TODO: add a static assert that u32 really is 4 bytes */
+typedef unsigned long u32;
+
 int objallocs = 0;
 int objallocsfromfreelist = 0;
 int objfrees = 0;
@@ -18,63 +29,219 @@ typedef struct freelist {
     struct freelist *next;
 } freelist;
 
-typedef unsigned char byte;
-
-/* To optimize allocation of doubles, we allocate them in blocks of 15
-   with the last 8 bytes for gc grey bit. The total size of the struct is
-   then 16*8 = 128 bytes.
-*/
-struct floatsblock {
-    double nums[15];
-    byte greybits[8];
+#if 0
+typedef struct objfreelist {
+    freelist *head;
+    int len;
+    int limit;
 };
+
+struct objfreelist[TP_DATA+1] = {
+    {0, 0, 0}, /* TP_NONE */
+    {0, 0, 0}, /* TP_NUMBER */
+}
+#endif
+
+/* We allocate doubles in blocks of NUMS_IN_BLOCK. We choose this value so
+   that the final size of numsblock structure is a power of 2 so that we can
+   get from the address of double to numsblock by masking lower bits.
+   Part of the block is also GC data - 1 bit per double.
+   */
+#define NUMS_IN_BLOCK 15
+/* need just one bit per number, one word is 32 bits */
+#define NUMS_GC_WORDS 1
+#define NUMS_PADDING_WORDS 1
+
+/* Size is NUMS_IN_BLOCK * 8 + 4 * (NUMS_GC_WORDS + NUMS_PADDING_WORDS) ==
+   15*8 + 4*2 = 16*8 = 128, so we need to mask lower 7 bits */
+#define numsblock_from_addr(o) (numsblock*)((long)o & 0x7f)
+
+typedef struct numsblock {
+    double nums[NUMS_IN_BLOCK];
+    u32 greybits[NUMS_GC_WORDS];
+    u32 padding[NUMS_PADDING_WORDS];
+} numsblock;
 
 /* TODO: free objects on objfreelist at some point */
 freelist *objfreelist = NULL;
 freelist *numfreelist = NULL;
 
+int tp_inline isbitset(u32 bit, u32 *bitvec) {
+    u32 tmp;
+    u32 word = bit / 32;
+    bit = bit % 32;
+    bitvec += word;
+    tmp = *bitvec & (1 << bit);
+    return 0 != tmp;
+}
+
+void tp_inline setbit(u32 bit, u32 *bitvec) {
+    u32 word = bit / 32;
+    bit = bit % 32;
+    bitvec += word;
+    *bitvec |= (1 << bit);
+}
+
+/* Sets the bit and returns 0 if the bit is not set.
+   Returns 1 if bit is already set */
+int tp_inline setbitmaybe(u32 bit, u32 *bitvec) {
+    u32 tmp;
+    u32 word = bit / 32;
+    bit = bit % 32;
+    bitvec += word;
+    tmp = *bitvec & (1 << bit);
+    if (0 != tmp)
+        return 1;
+    *bitvec |= (1 << bit);
+    return 0;
+}
+
+void tp_inline clearbit(u32 bit, u32 *bitvec) {
+    u32 word = bit / 32;
+    bit = bit % 32;
+    bitvec += word;
+    *bitvec &= ~(1 << bit);
+}
+
+tp_inline void numfreelistput(freelist* entry) {
+    entry->next = numfreelist;
+    numfreelist = entry;
+}
+
+tp_inline void objfreelistput(freelist* entry) {
+    entry->next = objfreelist;
+    objfreelist = entry;
+}
+
+tp_inline void numcleargcbit(tp_obj v)
+{
+    numsblock *blk = numsblock_from_addr(v);
+    double *num = (double*)untag_ptr(v);
+    u32 idx = num - &(blk->nums[0]);
+    assert(idx < NUMS_IN_BLOCK);
+    clearbit(idx, blk->greybits);
+}
+
+tp_inline void numsetgcbit(tp_obj v)
+{
+    numsblock *blk = numsblock_from_addr(v);
+    double *num = (double*)untag_ptr(v);
+    u32 idx = num - &(blk->nums[0]);
+    assert(idx < NUMS_IN_BLOCK);
+    setbit(idx, blk->greybits);
+}
+
+tp_inline int numsetgcbitmaybe(tp_obj v)
+{
+    numsblock *blk = numsblock_from_addr(v);
+    double *num = (double*)untag_ptr(v);
+    u32 idx = num - &(blk->nums[0]);
+    assert(idx < NUMS_IN_BLOCK);
+    return setbitmaybe(idx, blk->greybits);
+}
+
+#define NUM_ALLOC_OPT 0
+
+
+tp_obj alloc_num() {
+    tp_obj v;
+    int i;
+    if (!numfreelist) {
+        struct numsblock *nums = (numsblock*)malloc(sizeof(numsblock));
+        for (i = 0; i < 15; i++) {
+            numfreelistput((freelist*)&nums[i]);
+        }
+    } else {
+        ++objallocsfromfreelist;
+    }
+    ++objallocs;
+    ++objallocstats[TP_NUMBER];
+    v = (tp_obj)numfreelist;
+    numfreelist = numfreelist->next;
+#if !NUM_ALLOC_OPT
+    numcleargcbit(v);
+#endif
+    return tag_ptr(v, tagNumber);
+}
+
+void free_num(tp_obj v) {
+    ++objfrees;
+    ++objfreestats[TP_NUMBER];
+    numfreelistput((freelist*)v);
+}
+
 tp_obj obj_alloc(objtype type) {
     tp_obj v;
+    if (TP_NUMBER == type)
+        return alloc_num();
+
     if (objfreelist) {
         v = (tp_obj)objfreelist;
         objfreelist = objfreelist->next;
         ++objallocsfromfreelist;
     } else {
-        v = (tp_obj) malloc(sizeof(tp_obj_));
+        v = (tp_obj)malloc(sizeof(tp_obj_));
     }
     memset(v, 0xdd, sizeof(tp_obj_));
     v->type = type;
     ++objallocs;
     ++objallocstats[type];
-    return v;
+    return tag_ptr(v, tagObject);
 }
 
+/* TODO: limit the amount of stuff on free list */
 void obj_free(tp_obj v) {
-    freelist *entry;
-    ++objfrees;
-    int type = obj_type(v);
-    ++objfreestats[type];
-    entry = (freelist*)v;
-    entry->next = objfreelist;
-    objfreelist = entry;
-#if 0
-    free(v);
-#endif
+    if (is_number(v))
+        free_num(v);
+    else {
+        int type = obj_type(v);
+        ++objfreestats[type];
+        ++objfrees;
+        objfreelistput((freelist*)untag_ptr(v));
+    }
 }
 
-tp_obj tp_number(tp_vm *tp, tp_num v) { 
-    tp_obj val = obj_alloc(TP_NUMBER);
-    tp_number_val(val) = v;
-    val->number.gci = 0;
-    val->number.info = (char*)val + offsetof(tp_number_, gci); /* hack for uniform gc */
-    return tp_track(tp, val);
+void grey_num(tp_vm *tp, tp_obj v) {
+    if (numsetgcbitmaybe(v)) {
+        _tp_list_appendx(tp, tp->black, v);
+    }
+}
+
+tp_inline void tp_track_non_str(tp_vm *tp, tp_obj v) {
+    tp_gcinc(tp);
+    tp_grey(tp, v);
+}
+
+tp_obj tp_number(tp_vm *tp, tp_num v) {
+    tp_obj val = alloc_num();
+#if  NUM_ALLOC_OPT
+    numsetgcbit(v);
+    _tp_list_appendx(tp, tp->black, v);
+#else
+    tp_track_non_str(tp, val);
+#endif
+    return val;
 }
 
 void tp_grey(tp_vm *tp, tp_obj v) {
-    int type = obj_type(v);
-    if (type < TP_NUMBER || (!v->gci.data) || *v->gci.data) { return; }
+    int type;
+
+    if (is_number(v)) {
+        grey_num(tp, v);
+        return;
+    }
+
+    if (None == v)
+        return;
+
+    /* TODO: this should go away once all objects have gci.data */
+    if ((!v->gci.data) || *v->gci.data) { 
+        return; 
+    }
+
     *v->gci.data = 1;
-    if (type == TP_STRING || type == TP_DATA || type == TP_NUMBER) {
+    type = obj_type(v);
+    if (type == TP_STRING || type == TP_DATA) {
         /* doesn't reference other objects */
         _tp_list_appendx(tp, tp->black, v);
         return;
@@ -109,6 +276,7 @@ void tp_reset(tp_vm *tp) {
     int n;
     _tp_list *tmp;
     for (n=0; n<tp->black->len; n++) {
+        /* TODO: distinguish doubles ? */
         *tp->black->items[n]->gci.data = 0;
     }
     tmp = tp->white; 
@@ -141,7 +309,7 @@ void tp_delete(tp_vm *tp, tp_obj v) {
         obj_free(v);
         return;
     } else if (type == TP_NUMBER) {
-        obj_free(v);
+        free_num(v);
         return;
     } else if (type == TP_LIST) {
         _tp_list_free(v->list.val);
@@ -184,7 +352,7 @@ void tp_collect(tp_vm *tp) {
     tp_reset(tp);
 }
 
-void _tp_gcinc(tp_vm *tp) {
+static void _tp_gcinc(tp_vm *tp) {
     tp_obj v;
     if (!tp->grey->len) { 
         return; 
@@ -215,7 +383,7 @@ void tp_gcinc(tp_vm *tp) {
     tp_full(tp);
     return;
 }
-    
+
 tp_obj tp_track(tp_vm *tp, tp_obj v) {
     if (obj_type(v) == TP_STRING) {
         int i = _tp_dict_find(tp, tp->strings, v);
@@ -227,8 +395,7 @@ tp_obj tp_track(tp_vm *tp, tp_obj v) {
         }
         _tp_dict_setx(tp, tp->strings, v, True);
     }
-    tp_gcinc(tp);
-    tp_grey(tp, v);
+    tp_track_non_str(tp, v);
     return v;
 }
 

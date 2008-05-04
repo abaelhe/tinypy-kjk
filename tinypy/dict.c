@@ -18,7 +18,7 @@ void _tp_dict_free(_tp_dict *self) {
        self->cur = 0;
    }*/
 
-int tp_hash(TP,tp_obj v) {
+int tp_hash(tp_vm *tp, tp_obj v) {
     switch (obj_type(v)) {
         case TP_NONE: return 0;
         case TP_NUMBER: 

@@ -41,14 +41,28 @@ typedef enum objtype {
 
 typedef double tp_num;
 
-#define tp_number_val(o) (o)->number.val
+/* Pointer tagging scheme:
+ 2 lower bits reserved for a tag
+ 00 - small integer (not used yet)
+ 01 - number (double)
+ 10 - string (not used yet)
+ 11 - the rest
+*/
 
-typedef struct tp_number_ {
-    objtype type;
-    void *info; /* a hack -> this always points to offset of gci */
-    tp_num val;
-    int gci;
-} tp_number_;
+#define tagSmallInt 0
+#define tagNumber   1
+#define tagString   2
+#define tagObject   3
+
+#define tag_from_ptr(v) ((long)v & 3)
+#define untag_ptr(v) (tp_obj)((long)v & ~3)
+#define tag_ptr(v,tag) (tp_obj)((long)v | tag)
+
+#define is_number(v) tag_from_ptr(v) == tagNumber
+#define is_string(v) tag_from_ptr(v) == tagString
+#define is_object(v) tag_from_ptr(v) == tagObject
+
+#define tp_number_val(v) *(double*)untag_ptr(v)
 
 typedef struct tp_string_ {
     objtype type;
@@ -84,7 +98,6 @@ typedef struct tp_data_ {
 
 typedef union tp_obj_ {
     objtype type;
-    tp_number_ number;
     struct { int type; int *data; } gci;
     tp_string_ string;
     tp_dict_ dict;
@@ -188,6 +201,7 @@ typedef struct tp_meta {
        tp_obj (*has)(TP,tp_obj,tp_obj);
        tp_obj (*len)(TP,tp_obj);*/
 } tp_meta;
+
 typedef struct _tp_data {
     int gci;
     tp_meta meta;
@@ -198,7 +212,7 @@ typedef struct _tp_data {
 #define False tp_number(tp, 0)
 #define STR(v) ((tp_str(tp,(v)))->string.val)
 extern tp_obj_ NoneObj;
-#define None &NoneObj
+#define None tag_ptr(&NoneObj, tagObject)
 
 void tp_set(TP,tp_obj,tp_obj,tp_obj);
 tp_obj tp_get(TP,tp_obj,tp_obj);
@@ -215,7 +229,14 @@ void tp_grey(TP,tp_obj);
     _tp_raise(tp,tp_printf(tp,fmt,__VA_ARGS__)); \
     return r; \
 }
-#define obj_type(o) o->type
+
+tp_inline static objtype obj_type(tp_obj o) {
+    if (tag_from_ptr(o) == tagObject)
+        return o->type;
+    assert(tagNumber == tag_from_ptr(o));
+    return TP_NUMBER;
+}
+
 #define __params (tp->params)
 #define TP_OBJ() (tp_get(tp, tp->params, None))
 tp_inline static tp_obj tp_type(TP,int t,tp_obj v) {
