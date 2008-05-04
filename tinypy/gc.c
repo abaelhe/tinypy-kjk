@@ -93,10 +93,10 @@ void tp_follow(tp_vm *tp, tp_obj v) {
     }
     if (type == TP_DICT) {
         int i;
-        for (i=0; i < v->dict.val->len; i++) {
-            int n = _tp_dict_next(tp, v->dict.val);
-            tp_grey(tp, v->dict.val->items[n].key);
-            tp_grey(tp, v->dict.val->items[n].val);
+        for (i=0; i < tp_dict_val(v)->len; i++) {
+            int n = _tp_dict_next(tp, tp_dict_val(v));
+            tp_grey(tp, tp_dict_val(v)->items[n].key);
+            tp_grey(tp, tp_dict_val(v)->items[n].val);
         }
     }
     if (type == TP_FNC) {
@@ -152,7 +152,7 @@ void tp_delete(tp_vm *tp, tp_obj v) {
         obj_free(v);
         return;
     } else if (type == TP_DICT) {
-        _tp_dict_free(v->dict.val);
+        _tp_dict_free(tp_dict_val(v));
         obj_free(v);
         return;
     } else if (type == TP_DATA) {
