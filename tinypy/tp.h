@@ -48,25 +48,13 @@ typedef double tp_num;
  10 - string (not used yet)
  11 - the rest
 */
-#define tp_number_val(o) (o)->number.val
-#define tp_str_val(v) (v)->string.val
-#define tp_str_len(v) (v)->string.len
-#define tp_str_info(v) (v)->string.info
-#define tp_list_val(v) (v)->list.val
-#define tp_dict_val(v) (v)->dict.val
-#define tp_fnc_val(v) (v)->fnc.val
-#define tp_fnc_fval(v) (v)->fnc.fval
-#define tp_fnc_ftype(v) (v)->fnc.ftype
-#define tp_data_val(v) (v)->data.val
-#define tp_data_meta(v) (v)->data.meta
-
 #define tagSmallInt 0
 #define tagNumber   1
 #define tagString   2
 #define tagObject   3
 
 #define tag_from_ptr(v) ((long)v & 3)
-#define untag_ptr(v) (tp_obj)((long)v & ~3)
+#define untag_ptr(v) ((tp_obj)((long)v & ~3))
 #define tag_ptr(v,tag) (tp_obj)((long)v | tag)
 
 #define is_number(v) tag_from_ptr(v) == tagNumber
@@ -74,6 +62,19 @@ typedef double tp_num;
 #define is_object(v) tag_from_ptr(v) == tagObject
 
 #define tp_number_val(v) *(double*)untag_ptr(v)
+#define tp_str_val(v)    (untag_ptr(v))->string.val
+#define tp_str_len(v)    (untag_ptr(v))->string.len
+#define tp_str_info(v)   (untag_ptr(v))->string.info
+#define tp_list_val(v)   (untag_ptr(v))->list.val
+#define tp_dict_val(v)   (untag_ptr(v))->dict.val
+#define tp_dict_set_val(d,v) \
+    assert(v); \
+    tp_dict_val(d) = v;
+#define tp_fnc_val(v)    (untag_ptr(v))->fnc.val
+#define tp_fnc_fval(v)   (untag_ptr(v))->fnc.fval
+#define tp_fnc_ftype(v)  (untag_ptr(v))->fnc.ftype
+#define tp_data_val(v)   (untag_ptr(v))->data.val
+#define tp_data_meta(v)  (untag_ptr(v))->data.meta
 
 typedef struct tp_string_ {
     objtype type;
@@ -109,7 +110,7 @@ typedef struct tp_data_ {
 
 typedef union tp_obj_ {
     objtype type;
-    struct { int type; int *data; } gci;
+    struct { objtype type; int *data; } gci;
     tp_string_ string;
     tp_dict_ dict;
     tp_list_ list;
@@ -221,7 +222,6 @@ typedef struct _tp_data {
 /* NOTE: these are the few out of namespace items for convenience*/
 #define True tp_number(tp, 1)
 #define False tp_number(tp, 0)
-#define STR(v) (tp_str_val(tp_str(tp,(v))))
 extern tp_obj_ NoneObj;
 #define None tag_ptr(&NoneObj, tagObject)
 
@@ -243,10 +243,17 @@ void tp_grey(TP,tp_obj);
 
 tp_inline static objtype obj_type(tp_obj o) {
     if (tag_from_ptr(o) == tagObject)
-        return o->type;
+        return untag_ptr(o)->type;
     assert(tagNumber == tag_from_ptr(o));
     return TP_NUMBER;
 }
+
+tp_inline static char *tp_obj_to_c_str(tp_vm *tp, tp_obj v) {
+    tp_obj s = tp_str(tp,v);
+    return tp_str_val(s);
+}
+
+#define STR(v) tp_obj_to_c_str(tp,v)
 
 #define __params (tp->params)
 #define TP_OBJ() (tp_get(tp, tp->params, None))

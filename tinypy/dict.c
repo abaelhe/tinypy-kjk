@@ -157,7 +157,7 @@ tp_obj _tp_dict_copy(tp_vm *tp, tp_obj rr) {
     *r = *o;
     r->items = tp_malloc(sizeof(tp_item)*o->alloc);
     memcpy(r->items, o->items, sizeof(tp_item)*o->alloc);
-    tp_dict_val(obj) = r;
+    tp_dict_set_val(obj, r);
     return tp_track(tp, obj);
 }
 
@@ -186,15 +186,15 @@ tp_obj tp_merge(TP) {
 
 tp_obj tp_dict(tp_vm *tp) {
     tp_obj r = obj_alloc(TP_DICT);
-    tp_dict_val(r) = _tp_dict_new();
+    tp_dict_set_val(r, _tp_dict_new());
     return tp ? tp_track(tp,r) : r;
 }
 
-tp_obj tp_dict_n(TP,int n, tp_obj* argv) {
+tp_obj tp_dict_n(tp_vm *tp, int n, tp_obj* argv) {
     tp_obj r = tp_dict(tp);
-    int i; 
-    for (i=0; i<n; i++) { 
-        tp_set(tp,r,argv[i*2],argv[i*2+1]); 
+    int i;
+    for (i=0; i<n; i++) {
+        tp_set(tp,r,argv[i*2],argv[i*2+1]);
     }
     return r;
 }

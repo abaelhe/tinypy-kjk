@@ -80,8 +80,13 @@ def t_parse(s,ex=''):
     r = ''
     tokens = tokenize.tokenize(s)
     tree = parse.parse(s,tokens)
+    #print str(tree)
     r = t_lisp(tree)
-    #print(s); print(ex); print(r)
+    print(s); print(ex); print(r)
+    #if r != ex:
+    #    print("s : '" + str(s) + "'")
+    #    print("ex: '" + str(ex) + "'")
+    #    print("r : '" + str(r) + "'")
     assert(r==ex)
 
 if __name__ == '__main__':

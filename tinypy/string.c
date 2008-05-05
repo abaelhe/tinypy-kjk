@@ -1,7 +1,8 @@
 tp_obj tp_string_n(tp_vm *tp, char *v, int n) {
     tp_obj val = obj_alloc(TP_STRING);
-    tp_string_ *s = &val->string;
-    s->info = (struct _tp_string*) ((char*)val + offsetof(tp_string_, gci)); /* hack for uniform gc */
+    tp_obj valUntagged = untag_ptr(val);
+    tp_string_ *s = &valUntagged->string;
+    s->info = (struct _tp_string*) ((char*)valUntagged + offsetof(tp_string_, gci)); /* hack for uniform gc */
     s->val = v;
     s->len = n;
     s->gci = 0;

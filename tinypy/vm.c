@@ -212,8 +212,7 @@ int tp_step(tp_vm *tp) {
         case TP_IDEL: tp_del(tp,RA,RB); break;
         case TP_IMOVE: RA = RB; break;
         case TP_INUMBER:
-            ++cur;
-            RA = tp_number(tp, *(tp_num*)tp_str_val(cur));
+            RA = tp_number(tp, *(tp_num*)(*++cur).string.val);
             cur += sizeof(tp_num)/4;
             continue;
         case TP_ISTRING:

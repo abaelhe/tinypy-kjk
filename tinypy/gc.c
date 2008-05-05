@@ -54,7 +54,7 @@ struct objfreelist[TP_DATA+1] = {
 
 /* Size is NUMS_IN_BLOCK * 8 + 4 * (NUMS_GC_WORDS + NUMS_PADDING_WORDS) ==
    15*8 + 4*2 = 16*8 = 128, so we need to mask lower 7 bits */
-#define numsblock_from_addr(o) (numsblock*)((long)o & 0x7f)
+#define numsblock_from_addr(o) (numsblock*)((long)o & ~0x7f)
 
 typedef struct numsblock {
     double nums[NUMS_IN_BLOCK];
@@ -103,6 +103,35 @@ void tp_inline clearbit(u32 bit, u32 *bitvec) {
     *bitvec &= ~(1 << bit);
 }
 
+/* align_size has to be a power of two !! */
+static void *aligned_malloc(size_t size, size_t align_size) {
+
+  char *ptr,*ptr2,*aligned_ptr;
+  int align_mask = align_size - 1;
+
+  ptr=(char *)malloc(size + align_size + sizeof(int));
+  if (ptr==NULL) 
+    return NULL;
+
+  ptr2 = ptr + sizeof(int);
+  aligned_ptr = ptr2 + (align_size - ((size_t)ptr2 & align_mask));
+
+
+  ptr2 = aligned_ptr - sizeof(int);
+  *((int *)ptr2)=(int)(aligned_ptr - ptr);
+
+  return aligned_ptr;
+}
+
+#if 0
+static void aligned_free(void *ptr) {
+
+  int *ptr2=(int *)ptr - 1;
+  ptr -= *ptr2;
+  free(ptr);
+}
+#endif
+
 tp_inline void numfreelistput(freelist* entry) {
     entry->next = numfreelist;
     numfreelist = entry;
@@ -131,6 +160,15 @@ tp_inline void numsetgcbit(tp_obj v)
     setbit(idx, blk->greybits);
 }
 
+tp_inline int numisgcbitset(tp_obj v)
+{
+    numsblock *blk = numsblock_from_addr(v);
+    double *num = (double*)untag_ptr(v);
+    u32 idx = num - &(blk->nums[0]);
+    assert(idx < NUMS_IN_BLOCK);
+    return isbitset(idx, blk->greybits);
+}
+
 tp_inline int numsetgcbitmaybe(tp_obj v)
 {
     numsblock *blk = numsblock_from_addr(v);
@@ -142,14 +180,17 @@ tp_inline int numsetgcbitmaybe(tp_obj v)
 
 #define NUM_ALLOC_OPT 0
 
-
-tp_obj alloc_num() {
+tp_obj alloc_num(double val) {
     tp_obj v;
     int i;
     if (!numfreelist) {
-        struct numsblock *nums = (numsblock*)malloc(sizeof(numsblock));
+        /* TODO: this is wasteful, we allocate twice as much as we need. Should
+           allocate in pages via mmap() */
+        struct numsblock *nums = (numsblock*)aligned_malloc(sizeof(numsblock), sizeof(numsblock));
+        assert(0 == ((long)nums & 0x7f));
+        double *d = &(nums->nums[0]);
         for (i = 0; i < 15; i++) {
-            numfreelistput((freelist*)&nums[i]);
+            numfreelistput((freelist*)d++);
         }
     } else {
         ++objallocsfromfreelist;
@@ -161,6 +202,7 @@ tp_obj alloc_num() {
 #if !NUM_ALLOC_OPT
     numcleargcbit(v);
 #endif
+    *(double*)v = val;
     return tag_ptr(v, tagNumber);
 }
 
@@ -172,8 +214,11 @@ void free_num(tp_obj v) {
 
 tp_obj obj_alloc(objtype type) {
     tp_obj v;
-    if (TP_NUMBER == type)
-        return alloc_num();
+
+    if (TP_NUMBER == type) {
+        assert(0);
+        return alloc_num(0.0);
+    }
 
     if (objfreelist) {
         v = (tp_obj)objfreelist;
@@ -197,6 +242,7 @@ void obj_free(tp_obj v) {
         int type = obj_type(v);
         ++objfreestats[type];
         ++objfrees;
+        memset(untag_ptr(v), 0xcd, sizeof(tp_obj_));
         objfreelistput((freelist*)untag_ptr(v));
     }
 }
@@ -213,7 +259,8 @@ tp_inline void tp_track_non_str(tp_vm *tp, tp_obj v) {
 }
 
 tp_obj tp_number(tp_vm *tp, tp_num v) {
-    tp_obj val = alloc_num();
+    tp_obj val = alloc_num(v);
+    
 #if  NUM_ALLOC_OPT
     numsetgcbit(v);
     _tp_list_appendx(tp, tp->black, v);
@@ -225,6 +272,7 @@ tp_obj tp_number(tp_vm *tp, tp_num v) {
 
 void tp_grey(tp_vm *tp, tp_obj v) {
     int type;
+    tp_obj v2;
 
     if (is_number(v)) {
         grey_num(tp, v);
@@ -234,12 +282,13 @@ void tp_grey(tp_vm *tp, tp_obj v) {
     if (None == v)
         return;
 
+    v2 = untag_ptr(v);
     /* TODO: this should go away once all objects have gci.data */
-    if ((!v->gci.data) || *v->gci.data) { 
+    if ((!v2->gci.data) || *v2->gci.data) { 
         return; 
     }
 
-    *v->gci.data = 1;
+    *v2->gci.data = 1;
     type = obj_type(v);
     if (type == TP_STRING || type == TP_DATA) {
         /* doesn't reference other objects */
@@ -276,8 +325,13 @@ void tp_reset(tp_vm *tp) {
     int n;
     _tp_list *tmp;
     for (n=0; n<tp->black->len; n++) {
-        /* TODO: distinguish doubles ? */
-        *tp->black->items[n]->gci.data = 0;
+        tp_obj v = tp->black->items[n];
+        if (is_number(v))
+            numcleargcbit(v);
+        else {
+            tp_obj v2 = untag_ptr(v);
+            *v2->gci.data = 0;
+        }
     }
     tmp = tp->white; 
     tp->white = tp->black; 
@@ -303,7 +357,7 @@ void tp_delete(tp_vm *tp, tp_obj v) {
     int type = obj_type(v);
     /* checks are ordered by frequency of allocation */
     if (type == TP_STRING) {
-        tp_string_ *s = &v->string;
+        tp_string_ *s = &(untag_ptr(v)->string);
         if (s->info && !((char*)s->info < (char*)v + sizeof(tp_obj_))) {
             tp_free(s->info);
         }
@@ -325,7 +379,7 @@ void tp_delete(tp_vm *tp, tp_obj v) {
         obj_free(v);
         return;
     } else if (type == TP_DATA) {
-        tp_data_ *d = &v->data;
+        tp_data_ *d = &untag_ptr(v)->data;
         if (d->meta && d->meta->free) {
             d->meta->free(tp,v);
         }
@@ -338,15 +392,22 @@ void tp_delete(tp_vm *tp, tp_obj v) {
 
 void tp_collect(tp_vm *tp) {
     int n;
-    for (n=0; n<tp->white->len; n++) {
+    for (n=0; n < tp->white->len; n++) {
         tp_obj r = tp->white->items[n];
-        if (*r->gci.data) { 
-            continue; 
-        }
-        if (obj_type(r) == TP_STRING) {
-            /* this can't be moved into tp_delete, because tp_delete is
-               also used by tp_track_s to delete redundant strings */
-            _tp_dict_del(tp, tp->strings, r, "tp_collect");
+        if (is_number(r)) {
+            if (numisgcbitset(r))
+                continue;
+        } else {
+            assert(is_object(r));
+            tp_obj rUntagged = untag_ptr(r);
+            if (*rUntagged->gci.data) { 
+                continue; 
+            }
+            if (obj_type(r) == TP_STRING) {
+                /* this can't be moved into tp_delete, because tp_delete is
+                   also used by tp_track_s to delete redundant strings */
+                _tp_dict_del(tp, tp->strings, r, "tp_collect");
+            }
         }
         tp_delete(tp, r);
     }

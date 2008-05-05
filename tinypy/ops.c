@@ -60,7 +60,7 @@ tp_obj tp_iter(TP,tp_obj self, tp_obj k) {
     int type = obj_type(self);
     if (type == TP_LIST || type == TP_STRING) { return tp_get(tp,self,k); }
     if (type == TP_DICT && obj_type(k) == TP_NUMBER) {
-        return self->dict.val->items[_tp_dict_next(tp, tp_dict_val(self))].key;
+        return tp_dict_val(self)->items[_tp_dict_next(tp, tp_dict_val(self))].key;
     }
     tp_raise(None,"tp_iter(%s,%s)",STR(self),STR(k));
 }
@@ -172,8 +172,9 @@ int tp_iget(TP,tp_obj *r, tp_obj self, tp_obj k) {
     return 1;
 }
 
-void tp_set(TP,tp_obj self, tp_obj k, tp_obj v) {
-    int type = obj_type(self);
+void tp_set(tp_vm *tp, tp_obj self, tp_obj k, tp_obj v) {
+    objtype type = obj_type(self);
+    assert(type <= TP_DATA);
 
     if (type == TP_DICT) {
         _tp_dict_set(tp, tp_dict_val(self), k, v);
@@ -187,13 +188,13 @@ void tp_set(TP,tp_obj self, tp_obj k, tp_obj v) {
             return;
         } else if (obj_type(k) == TP_STRING) {
             if (strcmp("*", STR(k)) == 0) {
-                tp_params_v(tp,2,self,v); 
+                tp_params_v(tp, 2, self, v); 
                 tp_extend(tp);
                 return;
             }
         }
     } else if (type == TP_DATA) {
-        tp_data_meta(self)->set(tp,self,k,v);
+        tp_data_meta(self)->set(tp, self, k, v);
         return;
     }
     tp_raise(,"tp_set(%s,%s,%s)",STR(self),STR(k),STR(v));
