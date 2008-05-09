@@ -141,6 +141,7 @@ def show_biggest_for_exe(f):
     syms.sort(lambda y,x: cmp(x.size, y.size));
     for (sym,l) in zip(syms, range(15)):
         print "size: %5d %s" % (sym.size, sym.line)
+    fsize = os.path.getsize(f)
     print "total size: %d" % fsize
 
 def main():
