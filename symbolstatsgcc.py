@@ -10,51 +10,58 @@ def load(f):
     return d
 
 class Symbol(object):
-    def __init__(self, name, addr, kind, line):
+    def __init__(self, name, addr, kind, size, line):
         self.name = name
         self.addr = addr
-        self.size = 0
+        # nm -P has size of the symbol listed only on linux, on mac it's always
+        # 0, so self.sizefromnm recodrds that but we also calculate the size
+        # by substracting address from previous symbol
+        self.sizefromnm = size
+        self.calcsize = 0
         self.kind = kind
         self.line = line
 
+    def size(self):
+        if self.sizefromnm != 0:
+            return self.sizefromnm
+        return self.calcsize
+
 SYMS_TO_FILTER = ["__size_of_stack_reserve__", "__size_of_heap_reserve__", "__size_of_stack_commit__"]
 def filter_sym(sym):
-    if sym.size == 0: return True
+    if sym.size() == 0: return True
     if sym.name in SYMS_TO_FILTER: return True
     return False
 
-# Returns a list of tuples (symbolname, symboladdr, symbolsize, symboltype) based on parsing
-# the output of nm -n <file>
-def parse_nm_out(nmout, fsize=0):
+# Returns a list of Symbol objects based on parsing the output of nm -P -n <file>
+def parse_nm_out(nmout, fsize):
     syms = []
     n = 0
     for l in string.split(nmout, "\n"):
         l = l.strip()
-        if "U .data" in l: continue
-        if len(l) == 0: continue
-        #print l
+        if 0 == len(l): continue
         parts = string.split(l, " ")
-        # skip lines in the form:
-        # "         U _strrchr"
-        # (that I see on mac at the beginning of the file)
-        if 2 == len(parts) and "U" == parts[0]:
-            continue
-        # We assume the line was in the form:
-        # "000025c2 T __ZN10BencEntity15DestroyOrReturnEv"
-        (addr, kind, name) = parts
+        # skip lines like "__fxstat@@GLIBC_2.0 U" generted by nm on linux
+        if 2 == len(parts): continue
+        if 3 == len(parts):
+            (name, kind, addr) = parts
+            size = "0"
+        else:
+            if 4 != len(parts):
+                print l
+                print len(parts)
+            assert(4 == len(parts))
+            (name, kind, addr, size) = parts
         addr = int(addr, 16)
-        sym = Symbol(name, addr, kind, l)
+        size = int(size, 16)
+        sym = Symbol(name, addr, kind, size, l)
         syms.append(sym)
         if n > 0:
-            syms[n-1].size = addr - syms[n-1].addr
+            prevsym = syms[n-1]
+            prevsym.calcsize = addr - prevsym.addr
         n = n + 1
     last = syms[-1]
-    if 0 == fsize: # file size not given
-        last.size = 0
-    else:
-        assert(last.size == 0)
-        last.size = fsize - last.addr
-        assert(last.size >= 0)
+    last.calcsize = fsize - last.addr
+
     # for symbols with the same name, combine them into one symbol
     # TODO: can I do something more intelligent about 
     # __Z41__static_initialization_and_destruction_0ii symbols 
@@ -63,7 +70,8 @@ def parse_nm_out(nmout, fsize=0):
     symname_to_sym = {}
     for sym in syms:
         if sym.name in symname_to_sym:
-            symname_to_sym[sym.name].size += sym.size
+            symname_to_sym[sym.name].calcsize += sym.calcsize
+            symname_to_sym[sym.name].sizefromnm += sym.sizefromnm
         else:
             symname_to_sym[sym.name] = sym
             combined.append(sym)
@@ -72,9 +80,11 @@ def parse_nm_out(nmout, fsize=0):
 
 def syms_for_exe(f):
     fsize = os.path.getsize(f)
-    os.system("nm -n %s >nm_out_tmp.txt" % f)
+    os.system("nm -n -P %s >nm_out_tmp.txt" % f)
     nm_out = load("nm_out_tmp.txt")
-    return parse_nm_out(nm_out, fsize)
+    res = parse_nm_out(nm_out, fsize)
+    # TODO: remove the file
+    return res
 
 (ADDED, REMOVED, CHANGED) = ("ADDED", "REMOVED", "CHANGED")
 class SymbolDiff(object):
@@ -93,24 +103,24 @@ def syms_diff(syms1, syms2):
         diffs = []
     for s2 in syms2:
         if s2.name not in syms1_by_name:
-            diffs.append(SymbolDiff(s2.name, ADDED, s2.size))            
+            diffs.append(SymbolDiff(s2.name, ADDED, s2.size()))
         else:
             s1 = syms1_by_name[s2.name]
-            if s2.size != s1.size:
-                diffs.append(SymbolDiff(s2.name, CHANGED, s2.size - s1.size))
+            if s2.size() != s1.size():
+                diffs.append(SymbolDiff(s2.name, CHANGED, s2.size() - s1.size()))
     for s1 in syms1:
         if s1.name not in syms2_by_name:
-            diffs.append(SymbolDiff(s1.name, REMOVED, -s1.size))
+            diffs.append(SymbolDiff(s1.name, REMOVED, -s1.size()))
     return diffs
 
 def diff_dump_helper(diffs, difftype):
     if len(diffs) == 0: return
     print difftype
-    for d in diffs: print "%5d: %s" % (d.size, d.name)
+    for d in diffs: print "%5d: %s" % (d.size(), d.name)
 
 def diff_dump(diffs):
     total_change = 0
-    for d in diffs: total_change += d.size
+    for d in diffs: total_change += d.size()
     print "Total change in size: %d" % total_change
     added = [d for d in diffs if d.type == ADDED]
     removed = [d for d in diffs if d.type == REMOVED]
@@ -128,12 +138,12 @@ def diff_exes(exe1, exe2):
 
 def show_biggest_for_exe(f):
     syms = syms_for_exe(f)
-    syms.sort(lambda y,x: cmp(x.size, y.size));
-    for (sym,l) in zip(syms, range(15)):
-        print "size: %5d %s" % (sym.size, sym.line)
+    syms.sort(lambda y,x: cmp(x.size(), y.size()));
+    for (sym,l) in zip(syms, range(25)):
+        print "size: %5d %s" % (sym.size(), sym.line)
         def showzerosized(syms):
             for (sym, n) in zip(syms, range(len(syms))):
-                if sym.size == 0:
+                if sym.size() == 0:
                     print "%s has size 0" % sym.line
                     if n > 0:
                         print "%s is previous" % syms[n-1].lines
