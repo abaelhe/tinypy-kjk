@@ -1,0 +1,10 @@
+*.pyc
+*.tpc
+build/*
+tinypy/bc.c
+tinypy/mymain.c
+tinypy/tinypy
+tinypy/tinypy.dSYM
+tinypy/tmp.txt
+tinypy/tmp1.py
+tinypy/tmp2.py
